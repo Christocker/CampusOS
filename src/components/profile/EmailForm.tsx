@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Mail } from "lucide-react";
-import { Input, Label } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { updateEmailAction, type ProfileState } from "@/features/profile/actions";
 
@@ -12,13 +13,19 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
   const [state, formAction, pending] = useActionState(updateEmailAction, initial);
   const [email, setEmail] = useState(currentEmail);
   const [saved, setSaved] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    setEmail(currentEmail);
+  }, [currentEmail]);
 
   useEffect(() => {
     if (state.ok) {
       setSaved(true);
+      router.refresh();
       setTimeout(() => setSaved(false), 2000);
     }
-  }, [state.ok]);
+  }, [state.ok, router]);
 
   return (
     <div className="card p-4">
