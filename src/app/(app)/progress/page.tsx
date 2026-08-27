@@ -16,6 +16,7 @@ export default async function ProgressPage() {
       orderBy: { name: "asc" },
     }),
     prisma.user.findMany({
+      where: { role: "STUDENT" },
       select: { id: true, name: true, image: true },
       orderBy: { name: "asc" },
     }),

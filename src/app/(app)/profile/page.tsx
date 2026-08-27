@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   const [subjects, tasks, members] = await Promise.all([
     prisma.subject.count(),
     prisma.task.count(),
-    prisma.user.count(),
+    prisma.user.count({ where: { role: "STUDENT" } }),
   ]);
 
   const stats = [
