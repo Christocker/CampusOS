@@ -1,7 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/Modal";
-import { Input, Textarea, Label } from "@/components/ui/Input";
+import { Input, Textarea, Select, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
 import { createSubjectAction, updateSubjectAction } from "@/features/subjects/actions";
@@ -42,6 +42,11 @@ export function SubjectFormModal({
           )}
         </div>
 
+        <div>
+          <Label htmlFor="classCode">Class Code</Label>
+          <Input id="classCode" name="classCode" defaultValue={(subject as Subject & { classCode?: string })?.classCode ?? ""} placeholder="e.g. ECET315" autoCapitalize="characters" />
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="professor">Professor</Label>
@@ -49,7 +54,12 @@ export function SubjectFormModal({
           </div>
           <div>
             <Label htmlFor="semester">Semester</Label>
-            <Input id="semester" name="semester" defaultValue={subject?.semester ?? ""} placeholder="FALL 2026" autoCapitalize="characters" />
+            <Select id="semester" name="semester" defaultValue={subject?.semester ?? ""}>
+              <option value="">Select...</option>
+              <option value="1st Sem">1st Sem</option>
+              <option value="2nd Sem">2nd Sem</option>
+              <option value="Special Term">Special Term</option>
+            </Select>
           </div>
         </div>
 

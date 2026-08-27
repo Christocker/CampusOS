@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
-import { getEnrolledSubjectIds } from "@/lib/enrollment";
-import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { getEnrolledSubjectIds, enrolledSubjectFilter } from "@/lib/enrollment";
 import { ProgressTracker } from "@/components/progress/ProgressTracker";
 
 export default async function ProgressPage() {
@@ -12,7 +11,7 @@ export default async function ProgressPage() {
 
   const [subjects, users, tasks] = await Promise.all([
     prisma.subject.findMany({
-      where: enrolledIds.length > 0 ? { id: { in: enrolledIds } } : {},
+      where: enrolledSubjectFilter(enrolledIds),
       include: { _count: { select: { tasks: true } } },
       orderBy: { name: "asc" },
     }),
@@ -21,8 +20,8 @@ export default async function ProgressPage() {
       orderBy: { name: "asc" },
     }),
     prisma.task.findMany({
-      where: enrolledIds.length > 0 ? { subjectId: { in: enrolledIds } } : {},
-      select: { id: true, subjectId: true, userId: true, status: true },
+      where: enrolledIds.length > 0 ? { subjectId: { in: enrolledIds } } : { subjectId: { in: ["__NONE__"] } },
+      select: { id: true, title: true, subjectId: true, userId: true, status: true },
     }),
   ]);
 

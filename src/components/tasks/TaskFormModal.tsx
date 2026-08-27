@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
 import { createTaskAction, updateTaskAction } from "@/features/tasks/actions";
 import type { ActionState } from "@/features/shared/validations";
-import type { Subject, Task, Priority, TaskStatus } from "@prisma/client";
+import type { Subject, Task } from "@prisma/client";
 
 const initial: ActionState = {};
 
@@ -91,7 +91,7 @@ export function TaskFormModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {isEdit && (
           <div>
             <Label htmlFor="status">Status</Label>
             <Select id="status" name="status" defaultValue={task?.status ?? "NOT_STARTED"}>
@@ -101,23 +101,24 @@ export function TaskFormModal({
               <option value="COMPLETED">Completed</option>
             </Select>
           </div>
-          <div>
-            <Label>Deadline</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                id="deadlineDate"
-                type="date"
-                name="deadlineDate"
-                defaultValue={task ? toLocalDate(task.deadline) : ""}
-              />
-              <Input
-                id="deadlineTime"
-                type="time"
-                name="deadlineTime"
-                defaultValue={task ? toLocalTime(task.deadline) : ""}
-                placeholder="Optional"
-              />
-            </div>
+        )}
+
+        <div>
+          <Label>Deadline</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              id="deadlineDate"
+              type="date"
+              name="deadlineDate"
+              defaultValue={task ? toLocalDate(task.deadline) : ""}
+            />
+            <Input
+              id="deadlineTime"
+              type="time"
+              name="deadlineTime"
+              defaultValue={task ? toLocalTime(task.deadline) : ""}
+              placeholder="Optional"
+            />
           </div>
         </div>
 

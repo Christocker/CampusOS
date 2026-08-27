@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { subjectSchema } from "@/features/shared/validations";
 
 export type ActionState = {
   error?: string;
@@ -16,22 +15,22 @@ export async function createSubjectAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
-  const parsed = subjectSchema.safeParse({
-    name: formData.get("name"),
-    professor: formData.get("professor") ?? "",
-    semester: formData.get("semester") ?? "",
-    color: formData.get("color") ?? "#007AFF",
-    description: formData.get("description") ?? "",
-  });
 
-  if (!parsed.success) {
-    return { error: "Check the form.", fieldErrors: parsed.error.flatten().fieldErrors };
+  const name = String(formData.get("name") ?? "").trim();
+  const classCode = String(formData.get("classCode") ?? "").trim();
+  const professor = String(formData.get("professor") ?? "").trim();
+  const semester = String(formData.get("semester") ?? "").trim();
+  const color = String(formData.get("color") ?? "#007AFF");
+  const description = String(formData.get("description") ?? "").trim();
+
+  if (!name) {
+    return { error: "Name is required." };
   }
 
-  const { name, professor, semester, color, description } = parsed.data;
   const subject = await prisma.subject.create({
     data: {
       name,
+      classCode: classCode || null,
       professor: professor || null,
       semester: semester || null,
       color,
@@ -56,23 +55,22 @@ export async function updateSubjectAction(
     return { error: "Subject not found." };
   }
 
-  const parsed = subjectSchema.safeParse({
-    name: formData.get("name"),
-    professor: formData.get("professor") ?? "",
-    semester: formData.get("semester") ?? "",
-    color: formData.get("color") ?? "#007AFF",
-    description: formData.get("description") ?? "",
-  });
+  const name = String(formData.get("name") ?? "").trim();
+  const classCode = String(formData.get("classCode") ?? "").trim();
+  const professor = String(formData.get("professor") ?? "").trim();
+  const semester = String(formData.get("semester") ?? "").trim();
+  const color = String(formData.get("color") ?? "#007AFF");
+  const description = String(formData.get("description") ?? "").trim();
 
-  if (!parsed.success) {
-    return { error: "Check the form.", fieldErrors: parsed.error.flatten().fieldErrors };
+  if (!name) {
+    return { error: "Name is required." };
   }
 
-  const { name, professor, semester, color, description } = parsed.data;
   await prisma.subject.update({
     where: { id },
     data: {
       name,
+      classCode: classCode || null,
       professor: professor || null,
       semester: semester || null,
       color,
