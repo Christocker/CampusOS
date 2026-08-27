@@ -7,7 +7,7 @@ import {
   Home,
   BookOpen,
   Calendar as CalendarIcon,
-  User,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ const items: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/", label: "Home", icon: Home },
   { href: "/subjects", label: "Subjects", icon: BookOpen },
   { href: "/calendar", label: "Calendar", icon: CalendarIcon },
-  { href: "/profile", label: "Profile", icon: User },
+  { href: "/progress", label: "Progress", icon: Trophy },
 ];
 
 export function BottomNav({ subjects }: { subjects: Subject[] }) {

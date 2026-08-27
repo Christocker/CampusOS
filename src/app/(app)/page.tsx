@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, BookOpen, ListTodo, CalendarClock, Trophy } from "lucide-react";
+import { Plus, BookOpen, ListTodo, CalendarClock, Trophy, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 import { getEnrolledSubjectIds, enrolledFilter } from "@/lib/enrollment";
@@ -59,6 +59,11 @@ export default async function DashboardPage() {
       <ScreenHeader
         title={`${greeting(now)}, ${(user.name ?? "there").split(" ")[0]} 👋`}
         subtitle={now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+        action={
+          <Link href="/profile" className="flex size-10 items-center justify-center rounded-full bg-ink/5 text-ink transition hover:bg-ink/10 dark:bg-ink-inverse/10 dark:text-ink-inverse dark:hover:bg-ink-inverse/15">
+            <User className="size-5" />
+          </Link>
+        }
       />
 
       <Reveal delay={0.05}>
@@ -137,15 +142,6 @@ export default async function DashboardPage() {
         )}
       </Reveal>
 
-      <Reveal delay={0.25} className="mt-6">
-        <Link
-          href="/progress"
-          className="card flex items-center gap-3 px-4 py-3 transition active:bg-ink/5 dark:active:bg-ink-inverse/10"
-        >
-          <Trophy className="size-5 text-primary" />
-          <span className="text-note-body font-medium">Progress Tracker</span>
-        </Link>
-      </Reveal>
     </div>
   );
 }
