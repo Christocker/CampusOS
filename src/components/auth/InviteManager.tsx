@@ -31,8 +31,7 @@ export function InviteManager({
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  const active = codes.filter((c) => !c.usedById);
-  const redeemed = codes.filter((c) => !!c.usedById);
+  const active = codes;
 
   return (
     <div className="space-y-6">
@@ -97,24 +96,6 @@ export function InviteManager({
           </div>
         )}
       </div>
-
-      {redeemed.length > 0 && (
-        <div>
-          <h2 className="mb-2 text-base font-semibold">
-            Redeemed ({redeemed.length})
-          </h2>
-          <div className="divide-y divide-border-light rounded-2xl bg-card-light dark:divide-border-dark dark:bg-card-dark">
-            {redeemed.map((c) => (
-              <CodeRow
-                key={c.id}
-                code={c}
-                copiedId={copiedId}
-                onCopy={copy}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -210,19 +191,12 @@ function CodeRow({
                 + Add label
               </button>
             )}
-            {code.usedBy && <span> · used by {code.usedBy.name}</span>}
           </p>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span
-          className={
-            code.usedBy
-              ? "text-xs font-medium text-ink-muted"
-              : "text-xs font-medium text-success"
-          }
-        >
-          {code.usedBy ? "Redeemed" : "Active"}
+        <span className="text-xs font-medium text-success">
+          Active
         </span>
         <button
           type="button"

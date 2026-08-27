@@ -23,14 +23,14 @@ export default async function AdminPage() {
       prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     ]);
 
-  const usedCodes = codes.filter((c) => c.usedById).length;
-  const unusedCodes = codes.length - usedCodes;
+  const usedCodes = codes.length;
+  const unusedCodes = codes.length;
 
   const stats = [
     { label: "Users", value: totalUsers, icon: Users },
     { label: "Tasks", value: totalTasks, icon: ListTodo },
     { label: "Subjects", value: totalSubjects, icon: BookOpen },
-    { label: "Codes left", value: unusedCodes, icon: KeyRound },
+    { label: "Codes", value: codes.length, icon: KeyRound },
   ];
 
   return (
@@ -54,7 +54,7 @@ export default async function AdminPage() {
       <section>
         <h2 className="mb-3 text-base font-semibold">Access codes</h2>
         <p className="mb-3 text-sm text-ink-muted">
-          Share a code with a classmate so they can sign in. Each code works once.
+          Share a code with a classmate so they can sign in. Codes can be used unlimited times.
         </p>
         <InviteManager codes={codes} />
       </section>
