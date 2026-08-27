@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { sendEmail } from "@/lib/email";
 import type { ActionState } from "@/features/shared/validations";
 import type { TaskStatus } from "@prisma/client";
 
@@ -49,6 +50,42 @@ export async function createTaskAction(
       userId: user.id,
     },
   });
+
+  if (subjectId) {
+    const enrollments = await prisma.userEnrollment.findMany({
+      where: { subjectId },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    });
+    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+    const subjectName = subject?.name ?? "a subject";
+    const deadline = parseDeadline(deadlineDate, deadlineTime);
+    const deadlineStr = deadline ? ` Due: ${deadline.toLocaleDateString()}` : "";
+
+    for (const e of enrollments) {
+      if (e.user.id !== user.id && e.user.email) {
+        sendEmail({
+          to: e.user.email,
+          subject: `CampusOS: New task in ${subjectName}`,
+          html: `
+            <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+              <h2 style="color: #1C1C1E;">New Task Assigned</h2>
+              <p style="color: #8E8E93; font-size: 15px;">
+                Hi ${e.user.name ?? "there"}, a new task has been added to <strong>${subjectName}</strong>.
+              </p>
+              <div style="background: #F8F8FA; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <p style="margin: 0; font-size: 16px; font-weight: 600; color: #1C1C1E;">${title}</p>
+                ${description ? `<p style="margin: 8px 0 0; font-size: 14px; color: #8E8E93;">${description}</p>` : ""}
+                <p style="margin: 8px 0 0; font-size: 13px; color: #8E8E93;">Priority: ${priority}${deadlineStr}</p>
+              </div>
+              <p style="color: #8E8E93; font-size: 13px; margin-top: 24px;">
+                This is an automated message from CampusOS.
+              </p>
+            </div>
+          `,
+        });
+      }
+    }
+  }
 
   revalidatePath("/tasks");
   revalidatePath("/");

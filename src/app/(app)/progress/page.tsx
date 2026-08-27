@@ -22,7 +22,7 @@ export default async function ProgressPage() {
     }),
     prisma.task.findMany({
       where: enrolledIds.length > 0 ? { subjectId: { in: enrolledIds } } : { subjectId: { in: ["__NONE__"] } },
-      select: { id: true, title: true, subjectId: true, userId: true, status: true },
+      select: { id: true, title: true, subjectId: true, userId: true, status: true, deadline: true, priority: true },
     }),
   ]);
 

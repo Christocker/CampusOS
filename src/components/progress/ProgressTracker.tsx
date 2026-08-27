@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 type Subject = { id: string; name: string; color: string; classCode?: string | null; _count: { tasks: number } };
 type User = { id: string; name: string; image: string | null };
-type Task = { id: string; title: string; subjectId: string | null; userId: string; status: string };
+type Task = { id: string; title: string; subjectId: string | null; userId: string; status: string; deadline?: Date | null; priority?: string };
 
 export function ProgressTracker({
   subjects,
@@ -30,7 +30,8 @@ export function ProgressTracker({
     const userTasks = tasks.filter((t) => t.userId === u.id);
     const done = userTasks.filter((t) => t.status === "COMPLETED").length;
     return { ...u, total: userTasks.length, done, pct: userTasks.length ? Math.round((done / userTasks.length) * 100) : 0 };
-  }).filter((u) => u.total > 0)
+  })
+    .filter((u) => u.total > 0 || u.id === currentUserId)
     .sort((a, b) => b.pct - a.pct || b.done - a.done);
 
   const tasksBySubject = subjects.map((s) => ({
@@ -141,18 +142,35 @@ export function ProgressTracker({
                           s.tasks.map((t) => {
                             const assignee = users.find((u) => u.id === t.userId);
                             const isDone = t.status === "COMPLETED";
+                            const isOverdue = t.deadline && new Date(t.deadline) < new Date() && !isDone;
                             return (
                               <div key={t.id} className="flex items-center gap-2 py-1.5">
                                 {isDone ? (
                                   <Check className="size-3.5 shrink-0 text-success" />
+                                ) : isOverdue ? (
+                                  <X className="size-3.5 shrink-0 text-danger" />
                                 ) : (
                                   <X className="size-3.5 shrink-0 text-ink-muted/40" />
                                 )}
-                                <span className="flex-1 truncate text-xs">{t.title}</span>
-                                <span className="shrink-0 text-[11px] text-ink-muted">
-                                  {assignee?.name ?? "Unassigned"}
-                                  {assignee?.id === currentUserId && " (you)"}
-                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <span className={`block truncate text-xs ${isDone ? "text-ink-muted line-through" : ""}`}>
+                                    {t.title}
+                                  </span>
+                                  <span className="text-[10px] text-ink-muted">
+                                    {assignee?.name ?? "Unassigned"}
+                                    {assignee?.id === currentUserId && " (you)"}
+                                    {t.deadline && ` · Due ${new Date(t.deadline).toLocaleDateString()}`}
+                                  </span>
+                                </div>
+                                {t.priority && (
+                                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                    t.priority === "HIGH" ? "bg-danger/10 text-danger" :
+                                    t.priority === "MEDIUM" ? "bg-warning/10 text-warning" :
+                                    "bg-ink/5 text-ink-muted"
+                                  }`}>
+                                    {t.priority}
+                                  </span>
+                                )}
                               </div>
                             );
                           })
