@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/features/auth/actions";
 import { initials } from "@/lib/utils";
 import { BookOpen, ListTodo, Users, LogOut, Shield } from "lucide-react";
+import { EmailForm } from "@/components/profile/EmailForm";
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
@@ -34,6 +35,8 @@ export default async function ProfilePage() {
         <h2 className="mt-3 text-xl font-semibold">{user.name}</h2>
         <p className="text-sm text-ink-muted">{user.email}</p>
       </div>
+
+      <EmailForm currentEmail={user.email ?? ""} />
 
       <div className="card divide-y divide-separator-light overflow-hidden dark:divide-separator-dark">
         {stats.map((s) => (
