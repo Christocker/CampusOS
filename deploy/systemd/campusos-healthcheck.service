@@ -1,0 +1,7 @@
+[Unit]
+Description=CampusOS health check (oneshot)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/campusos
+ExecStart=/usr/bin/bash /opt/campusos/scripts/healthcheck.sh

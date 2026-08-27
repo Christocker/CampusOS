@@ -1,0 +1,15 @@
+[Unit]
+Description=CampusOS Cloudflare Tunnel (public HTTPS to localhost:3000)
+After=network-online.target campusos.service
+Requires=network-online.target
+Wants=campusos.service
+
+[Service]
+Type=simple
+# Path to cloudflared. Adjust if installed elsewhere (e.g. /usr/bin/cloudflared).
+ExecStart=/usr/local/bin/cloudflared tunnel run campusos
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

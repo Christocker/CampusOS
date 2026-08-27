@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background-light text-ink antialiased;
+    @apply dark:bg-background-dark dark:text-ink-inverse;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    @apply bg-primary/30;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-card-light border border-border-light/60;
+    @apply dark:bg-card-dark dark:border-border-dark/60;
+  }
+
+  .glass {
+    @apply bg-card-light/80 backdrop-blur-xl border border-border-light/60;
+    @apply dark:bg-card-dark/80 dark:border-border-dark/60;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl bg-white px-4 py-3 text-base outline-none transition;
+    @apply border border-border-light focus:border-primary focus:ring-2 focus:ring-primary/20;
+    @apply dark:bg-card-dark dark:border-border-dark dark:text-ink-inverse;
+    @apply placeholder:text-ink-muted;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.skeleton {
+  @apply relative overflow-hidden bg-border-light/60 dark:bg-border-dark/60;
+}
+.skeleton::after {
+  @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer;
+  content: "";
+}

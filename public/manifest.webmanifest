@@ -1,0 +1,17 @@
+{
+  "name": "CampusOS",
+  "short_name": "CampusOS",
+  "description": "A self-hosted student operating system for managing academic life.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8F8FA",
+  "theme_color": "#007AFF",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

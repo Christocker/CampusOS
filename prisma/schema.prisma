@@ -1,0 +1,213 @@
+// CampusOS — Prisma schema (PostgreSQL)
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum TaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum GroupRole {
+  MEMBER
+  ADMIN
+}
+
+enum EventType {
+  TASK
+  DEADLINE
+  EXAM
+  EVENT
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  image        String?
+  role         UserRole    @default(STUDENT)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  subjects    Subject[]
+  tasks       Task[]
+  memberships GroupMember[]
+  ownedGroups Group[]
+  files       File[]
+  comments    Comment[]
+  events      CalendarEvent[]
+  inviteCodes InviteCode[]  @relation("CreatedCodes")
+  redeemedCodes InviteCode[] @relation("RedeemedCodes")
+  enrollments UserEnrollment[]
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  professor   String?
+  semester    String?
+  color       String   @default("#007AFF")
+  description String?
+  userId      String
+  createdAt   DateTime @default(now())
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  enrollments UserEnrollment[]
+
+  @@index([userId])
+}
+
+model Task {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus  @default(NOT_STARTED)
+  priority    Priority    @default(MEDIUM)
+  deadline    DateTime?
+  completedAt DateTime?
+  subjectId   String?
+  userId      String
+  groupId     String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  subject  Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group    Group?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  comments Comment[]
+
+  @@index([userId])
+  @@index([deadline])
+  @@index([groupId])
+}
+
+model Group {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime      @default(now())
+
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members GroupMember[]
+  tasks   Task[]
+  files   File[]
+
+  @@index([ownerId])
+}
+
+model GroupMember {
+  id      String    @id @default(cuid())
+  groupId String
+  userId  String
+  role    GroupRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model InviteCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  label       String?
+  role        UserRole  @default(STUDENT)
+  createdById String
+  createdBy   User     @relation("CreatedCodes", fields: [createdById], references: [id], onDelete: Cascade)
+  usedById    String?
+  usedBy      User?    @relation("RedeemedCodes", fields: [usedById], references: [id], onDelete: SetNull)
+  usedAt      DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([createdById])
+}
+
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  path      String
+  mimeType  String
+  size      Int
+  ownerId   String
+  subjectId String?
+  taskId    String?
+  groupId   String?
+  createdAt DateTime @default(now())
+
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([groupId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  authorId  String
+  taskId    String
+  createdAt DateTime @default(now())
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime?
+  allDay      Boolean   @default(false)
+  type        EventType @default(EVENT)
+  userId      String
+  subjectId   String?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([start])
+}
+
+model UserEnrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  subjectId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([userId])
+  @@index([subjectId])
+}

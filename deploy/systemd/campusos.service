@@ -1,0 +1,17 @@
+[Unit]
+Description=CampusOS (Next.js + PostgreSQL via Docker Compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Edit WorkingDirectory to wherever you cloned CampusOS.
+WorkingDirectory=/opt/campusos
+ExecStart=/usr/bin/docker compose up
+ExecStop=/usr/bin/docker compose down
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
