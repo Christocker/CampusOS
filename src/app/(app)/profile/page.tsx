@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/features/auth/actions";
@@ -10,6 +11,7 @@ import { EmailForm } from "@/components/profile/EmailForm";
 
 export default async function ProfilePage() {
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const [subjects, tasks, members] = await Promise.all([
     prisma.subject.count(),

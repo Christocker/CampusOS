@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { GroupsView } from "@/components/groups/GroupsView";
 
 export default async function GroupsPage() {
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const memberships = await prisma.groupMember.findMany({
     where: { userId: user.id },

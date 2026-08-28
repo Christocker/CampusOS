@@ -14,6 +14,7 @@ export async function updateEmailAction(
   formData: FormData,
 ): Promise<ProfileState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const email = String(formData.get("email") ?? "").trim();
 
   if (!email) {

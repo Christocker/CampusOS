@@ -17,6 +17,7 @@ export async function createEventAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -56,6 +57,7 @@ export async function createEventAction(
 
 export async function deleteEventAction(id: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const event = await prisma.calendarEvent.findUnique({ where: { id } });
   if (!event) return;
   await prisma.calendarEvent.delete({ where: { id } });

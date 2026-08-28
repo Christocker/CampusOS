@@ -18,6 +18,7 @@ export async function createInviteCodeAction(
   formData: FormData,
 ): Promise<ActionState> {
   const admin = await requireUser();
+  if (!admin) return { error: "Session expired." };
   if (admin.role !== "ADMIN") {
     return { error: "Only an admin can create access codes." };
   }

@@ -1,10 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { getEnrolledSubjectIds, enrolledSubjectFilter } from "@/lib/enrollment";
 import { ProgressTracker } from "@/components/progress/ProgressTracker";
 
 export default async function ProgressPage() {
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
 

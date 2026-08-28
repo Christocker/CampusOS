@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { TaskDetail } from "@/components/tasks/TaskDetail";
 
 export default async function TaskDetailPage({
@@ -10,6 +11,7 @@ export default async function TaskDetailPage({
 }) {
   const { id } = await params;
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const task = await prisma.task.findUnique({
     where: { id },

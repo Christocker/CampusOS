@@ -19,6 +19,7 @@ export async function createTaskAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -99,6 +100,7 @@ export async function updateTaskAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) {
     return { error: "Task not found." };
@@ -141,6 +143,7 @@ export async function setTaskStatusAction(
   status: TaskStatus,
 ): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
   await prisma.task.update({
@@ -157,6 +160,7 @@ export async function setTaskStatusAction(
 
 export async function toggleTaskCompleteAction(id: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
   const completed = existing.status === "COMPLETED";
@@ -174,6 +178,7 @@ export async function toggleTaskCompleteAction(id: string): Promise<void> {
 
 export async function deleteTaskAction(id: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
   await prisma.task.delete({ where: { id } });

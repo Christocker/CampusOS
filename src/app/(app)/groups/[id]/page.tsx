@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { GroupDetail } from "@/components/groups/GroupDetail";
 
 export default async function GroupDetailPage({
@@ -10,6 +11,7 @@ export default async function GroupDetailPage({
 }) {
   const { id } = await params;
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const group = await prisma.group.findUnique({
     where: { id },

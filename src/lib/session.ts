@@ -12,7 +12,6 @@ export type SessionUser = {
 
 /**
  * Returns the logged-in user with fresh data from the DB, or null.
- * Returns null if the JWT user was deleted from the DB.
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
@@ -35,13 +34,9 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 }
 
 /**
- * Returns the current user. If not authenticated or session is stale,
- * redirects to /auth/clear which clears the cookie and sends to /login.
+ * Returns the current user. If the DB user is missing (stale session),
+ * returns null so callers can handle it gracefully.
  */
-export async function requireUser(): Promise<SessionUser> {
-  const user = await getCurrentUser();
-  if (!user) {
-    redirect("/api/auth/clear");
-  }
-  return user;
+export async function requireUser(): Promise<SessionUser | null> {
+  return getCurrentUser();
 }

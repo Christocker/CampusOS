@@ -7,6 +7,7 @@ import { sendEnrollmentEmail } from "@/lib/email";
 
 export async function enrollSubjectAction(subjectId: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   await prisma.userEnrollment.upsert({
     where: { userId_subjectId: { userId: user.id, subjectId } },
     update: {},
@@ -30,6 +31,7 @@ export async function enrollSubjectAction(subjectId: string): Promise<void> {
 
 export async function unenrollSubjectAction(subjectId: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
 
   const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
 

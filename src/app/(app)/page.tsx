@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, BookOpen, ListTodo, CalendarClock, Trophy, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { SessionExpired } from "@/components/auth/SessionExpired";
 import { getEnrolledSubjectIds, enrolledFilter } from "@/lib/enrollment";
 import { greeting } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  if (!user) return <SessionExpired />;
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
   const taskFilter = enrolledFilter(enrolledIds);

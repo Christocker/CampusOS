@@ -15,6 +15,7 @@ export async function createGroupAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const parsed = groupSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description") ?? "",
@@ -43,6 +44,7 @@ export async function addMemberAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: { members: true },
@@ -73,6 +75,7 @@ export async function removeMemberAction(
   memberUserId: string,
 ): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group || group.ownerId !== user.id) return;
 
@@ -85,6 +88,7 @@ export async function removeMemberAction(
 
 export async function leaveGroupAction(groupId: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   await prisma.groupMember.deleteMany({
     where: { groupId, userId: user.id },
   });
@@ -94,6 +98,7 @@ export async function leaveGroupAction(groupId: string): Promise<void> {
 
 export async function deleteGroupAction(groupId: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group || group.ownerId !== user.id) return;
   await prisma.group.delete({ where: { id: groupId } });
@@ -106,6 +111,7 @@ export async function createGroupTaskAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: { members: true },
@@ -149,6 +155,7 @@ export async function addCommentAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const parsed = commentSchema.safeParse({
     taskId: formData.get("taskId"),
     content: formData.get("content"),

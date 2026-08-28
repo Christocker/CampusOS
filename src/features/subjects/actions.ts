@@ -15,6 +15,7 @@ export async function createSubjectAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
 
   const name = String(formData.get("name") ?? "").trim();
   const classCode = String(formData.get("classCode") ?? "").trim();
@@ -50,6 +51,7 @@ export async function updateSubjectAction(
   formData: FormData,
 ): Promise<ActionState> {
   const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
   const existing = await prisma.subject.findUnique({ where: { id } });
   if (!existing) {
     return { error: "Subject not found." };
@@ -86,6 +88,7 @@ export async function updateSubjectAction(
 
 export async function deleteSubjectAction(id: string): Promise<void> {
   const user = await requireUser();
+  if (!user) return;
   const existing = await prisma.subject.findUnique({ where: { id } });
   if (!existing) return;
   await prisma.subject.delete({ where: { id } });
