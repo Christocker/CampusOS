@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export type SessionUser = {
@@ -31,11 +30,15 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   };
 }
 
-/** Redirects to /login if not authenticated or session is stale. */
+/**
+ * Returns the current user or signs out stale sessions and redirects to /login.
+ * This prevents infinite redirect loops where the JWT is valid but the user
+ * was deleted from the DB.
+ */
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    await signOut({ redirectTo: "/login" });
   }
-  return user;
+  return user!;
 }
