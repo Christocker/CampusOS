@@ -23,3 +23,5 @@ check.sql
 migrate.sql
 tunnel-url.txt
 tunnel-url.txt.err
+
+.vercel
