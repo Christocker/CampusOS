@@ -11,8 +11,8 @@ export type SessionUser = {
 };
 
 /**
- * Returns the logged-in user with fresh data from the DB.
- * Falls back to JWT data if the DB user was deleted (prevents redirect loops).
+ * Returns the logged-in user with fresh data from the DB, or null.
+ * Returns null if the JWT user was deleted from the DB.
  */
 export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await auth();
@@ -23,36 +23,25 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     where: { id: sessionUser.id },
     select: { id: true, name: true, email: true, image: true, role: true },
   });
+  if (!dbUser) return null;
 
-  if (dbUser) {
-    return {
-      id: dbUser.id,
-      name: dbUser.name,
-      email: dbUser.email,
-      image: dbUser.image,
-      role: dbUser.role,
-    };
-  }
-
-  // User was deleted from DB but JWT is still valid — return JWT data
-  // so the page renders instead of causing a redirect loop.
   return {
-    id: sessionUser.id,
-    name: sessionUser.name ?? null,
-    email: sessionUser.email ?? "",
-    image: sessionUser.image ?? null,
-    role: sessionUser.role ?? "STUDENT",
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    image: dbUser.image,
+    role: dbUser.role,
   };
 }
 
 /**
- * Returns the current user. If the session is invalid, redirects to /login.
- * If the user was deleted from DB, signs out via the client and redirects.
+ * Returns the current user. If not authenticated or session is stale,
+ * redirects to /auth/clear which clears the cookie and sends to /login.
  */
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect("/auth/clear");
   }
-  return user!;
+  return user;
 }
