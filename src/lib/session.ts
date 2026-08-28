@@ -41,7 +41,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 export async function requireUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/auth/clear");
+    redirect("/api/auth/clear");
   }
   return user;
 }
