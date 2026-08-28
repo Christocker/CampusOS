@@ -12,11 +12,11 @@ export function SessionExpired() {
         <p className="mt-2 text-sm text-ink-muted">
           Your session is no longer valid. Please sign in again.
         </p>
-        <Link href="/signout">
+        <a href="/signout">
           <Button className="mt-6 w-full">
             <LogIn className="size-4" /> Sign in again
           </Button>
-        </Link>
+        </a>
       </div>
     </div>
   );
