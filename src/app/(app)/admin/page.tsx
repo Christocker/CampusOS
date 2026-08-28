@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { InviteManager } from "@/components/auth/InviteManager";
 import { UserManager } from "@/components/admin/UserManager";
 import { Users, ListTodo, BookOpen, KeyRound } from "lucide-react";
 
 export default async function AdminPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
   if (user.role !== "ADMIN") redirect("/");
 
   const [totalUsers, totalTasks, totalSubjects, codes, users] =

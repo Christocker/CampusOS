@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { getEnrolledSubjectIds } from "@/lib/enrollment";
 import { SubjectDetail } from "@/components/subjects/SubjectDetail";
 
@@ -10,8 +10,7 @@ export default async function SubjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const subject = await prisma.subject.findUnique({ where: { id } });
   if (!subject) return notFound();

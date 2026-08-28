@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { GroupDetail } from "@/components/groups/GroupDetail";
 
 export default async function GroupDetailPage({
@@ -9,8 +9,7 @@ export default async function GroupDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const group = await prisma.group.findUnique({
     where: { id },

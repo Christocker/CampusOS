@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/features/auth/actions";
@@ -9,8 +9,7 @@ import { BookOpen, ListTodo, Users, LogOut, Shield } from "lucide-react";
 import { EmailForm } from "@/components/profile/EmailForm";
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const [subjects, tasks, members] = await Promise.all([
     prisma.subject.count(),

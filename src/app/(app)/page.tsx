@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, BookOpen, ListTodo, CalendarClock, Trophy, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { getEnrolledSubjectIds, enrolledFilter } from "@/lib/enrollment";
 import { greeting } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -13,8 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
   const taskFilter = enrolledFilter(enrolledIds);

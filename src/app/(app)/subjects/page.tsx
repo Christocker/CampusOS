@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { SubjectsView } from "@/components/subjects/SubjectsView";
 
 export default async function SubjectsPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const [subjects, enrollments] = await Promise.all([
     prisma.subject.findMany({

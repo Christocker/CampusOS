@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { getEnrolledSubjectIds, enrolledFilter, enrolledSubjectFilter } from "@/lib/enrollment";
 import { TasksView } from "@/components/tasks/TasksView";
 
 export default async function TasksPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
   const taskFilter = enrolledFilter(enrolledIds);

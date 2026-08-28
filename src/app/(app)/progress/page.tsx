@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { getEnrolledSubjectIds, enrolledSubjectFilter } from "@/lib/enrollment";
 import { ProgressTracker } from "@/components/progress/ProgressTracker";
 
 export default async function ProgressPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
 

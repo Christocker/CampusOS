@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/session";
+import { requireUser } from "@/lib/session";
 import { GroupsView } from "@/components/groups/GroupsView";
 
 export default async function GroupsPage() {
-  const user = await getCurrentUser();
-  if (!user) return null;
+  const user = await requireUser();
 
   const memberships = await prisma.groupMember.findMany({
     where: { userId: user.id },
