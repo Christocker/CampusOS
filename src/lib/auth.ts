@@ -23,27 +23,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (raw) => {
         if (!raw) return null;
 
-        // Code-based login: user enters just the code (unlimited use)
+        // Code-based login: find user associated with this code
         if (raw.code && typeof raw.code === "string") {
           const code = raw.code.trim();
 
           const inviteCode = await prisma.inviteCode.findUnique({
             where: { code },
+            include: { user: true },
           });
-          if (!inviteCode) return null;
+          if (!inviteCode || !inviteCode.user) return null;
 
-          const name = inviteCode.label || "Student";
-          const ts = Date.now().toString(36);
-          const email = `${name.toLowerCase().replace(/\s+/g, ".")}.${ts}@campusos.local`;
-          const user = await prisma.user.create({
-            data: { name, email, passwordHash: "", role: inviteCode.role },
-          });
-
+          const u = inviteCode.user;
           return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
           };
         }
 

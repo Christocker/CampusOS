@@ -17,7 +17,7 @@ export default async function AdminPage() {
       prisma.task.count(),
       prisma.subject.count(),
       prisma.inviteCode.findMany({
-        include: { usedBy: { select: { name: true } } },
+        include: { user: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.user.findMany({ orderBy: { createdAt: "asc" } }),

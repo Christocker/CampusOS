@@ -58,7 +58,7 @@ model User {
   comments    Comment[]
   events      CalendarEvent[]
   inviteCodes InviteCode[]  @relation("CreatedCodes")
-  redeemedCodes InviteCode[] @relation("RedeemedCodes")
+  codeAccounts InviteCode[]  @relation("CodeUser")
   enrollments UserEnrollment[]
 }
 
@@ -140,13 +140,13 @@ model InviteCode {
   role        UserRole  @default(STUDENT)
   createdById String
   createdBy   User     @relation("CreatedCodes", fields: [createdById], references: [id], onDelete: Cascade)
-  usedById    String?
-  usedBy      User?    @relation("RedeemedCodes", fields: [usedById], references: [id], onDelete: SetNull)
-  usedAt      DateTime?
+  userId      String?
+  user        User?    @relation("CodeUser", fields: [userId], references: [id], onDelete: SetNull)
   expiresAt   DateTime?
   createdAt   DateTime @default(now())
 
   @@index([createdById])
+  @@index([userId])
 }
 
 model File {

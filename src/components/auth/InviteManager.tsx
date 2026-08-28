@@ -17,7 +17,7 @@ const initial: ActionState = {};
 export function InviteManager({
   codes,
 }: {
-  codes: (InviteCode & { usedBy: { name: string } | null })[];
+  codes: (InviteCode & { user: { name: string } | null })[];
 }) {
   const [state, formAction, pending] = useActionState(
     createInviteCodeAction,
@@ -116,7 +116,7 @@ function CodeRow({
   copiedId,
   onCopy,
 }: {
-  code: InviteCode & { usedBy: { name: string } | null };
+  code: InviteCode & { user: { name: string } | null };
   copiedId: string | null;
   onCopy: (id: string, text: string) => void;
 }) {
