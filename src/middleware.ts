@@ -1,13 +1,32 @@
 import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { nextUrl } = req;
-  const isLoggedIn = !!req.auth;
   const path = nextUrl.pathname;
 
+  // Handle /signout: clear all cookies and redirect to /login
+  if (path === "/signout") {
+    const response = NextResponse.redirect(new URL("/login", nextUrl));
+    const cookieNames = ["authjs.session-token", "__Secure-authjs.session-token",
+      "authjs.callback-url", "__Secure-authjs.callback-url",
+      "authjs.csrf-token", "__Secure-authjs.csrf-token"];
+    for (const name of cookieNames) {
+      response.cookies.delete(name);
+    }
+    // Also delete any cookie starting with authjs
+    for (const cookie of req.cookies.getAll()) {
+      if (cookie.name.includes("authjs")) {
+        response.cookies.delete(cookie.name);
+      }
+    }
+    return response;
+  }
+
+  const isLoggedIn = !!req.auth;
   const isAuthPage = path === "/login";
   const isApiAuth = path.startsWith("/api/auth");
 
