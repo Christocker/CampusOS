@@ -123,7 +123,7 @@ export default async function DashboardPage() {
         {subjects.length ? (
           <div className="card divide-y divide-separator-light overflow-hidden dark:divide-separator-dark">
             {subjects.slice(0, 4).map((s) => (
-              <SubjectCard key={s.id} subject={s} enrolled />
+              <SubjectCard key={s.id} subject={s} enrolled canToggle={false} />
             ))}
           </div>
         ) : (

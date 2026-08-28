@@ -10,15 +10,18 @@ import type { Subject } from "@prisma/client";
 export function SubjectCard({
   subject,
   enrolled,
+  canToggle = true,
 }: {
   subject: Subject & { _count?: { tasks: number } };
   enrolled?: boolean;
+  canToggle?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
   const toggleEnroll = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canToggle) return;
     startTransition(() => {
       if (enrolled) {
         unenrollSubjectAction(subject.id);
@@ -43,18 +46,24 @@ export function SubjectCard({
             {subject._count?.tasks ? ` · ${subject._count.tasks} tasks` : ""}
           </p>
         </div>
-        <button
-          onClick={toggleEnroll}
-          disabled={isPending}
-          className={`flex size-8 shrink-0 items-center justify-center rounded-full transition ${
-            enrolled
-              ? "bg-success/15 text-success hover:bg-success/25"
-              : "bg-ink/5 text-ink-muted hover:bg-ink/10 dark:bg-ink-inverse/10 dark:hover:bg-ink-inverse/15"
-          }`}
-          aria-label={enrolled ? "Unenroll" : "Enroll"}
-        >
-          {enrolled ? <Check className="size-4" /> : <Plus className="size-4" />}
-        </button>
+        {canToggle ? (
+          <button
+            onClick={toggleEnroll}
+            disabled={isPending}
+            className={`flex size-8 shrink-0 items-center justify-center rounded-full transition ${
+              enrolled
+                ? "bg-success/15 text-success hover:bg-success/25"
+                : "bg-ink/5 text-ink-muted hover:bg-ink/10 dark:bg-ink-inverse/10 dark:hover:bg-ink-inverse/15"
+            }`}
+            aria-label={enrolled ? "Unenroll" : "Enroll"}
+          >
+            {enrolled ? <Check className="size-4" /> : <Plus className="size-4" />}
+          </button>
+        ) : enrolled ? (
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+            <Check className="size-4" />
+          </span>
+        ) : null}
       </motion.div>
     </Link>
   );
