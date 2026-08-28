@@ -11,10 +11,12 @@ export function SubjectCard({
   subject,
   enrolled,
   canToggle = true,
+  showIndicator = true,
 }: {
   subject: Subject & { _count?: { tasks: number } };
   enrolled?: boolean;
   canToggle?: boolean;
+  showIndicator?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
 
@@ -59,7 +61,7 @@ export function SubjectCard({
           >
             {enrolled ? <Check className="size-4" /> : <Plus className="size-4" />}
           </button>
-        ) : enrolled ? (
+        ) : showIndicator && enrolled ? (
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
             <Check className="size-4" />
           </span>
