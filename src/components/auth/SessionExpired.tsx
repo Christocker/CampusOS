@@ -9,16 +9,18 @@ export function SessionExpired() {
 
   const handleSignOut = () => {
     setClearing(true);
-    // Delete ALL cookies for this domain
-    const cookies = document.cookie.split(";");
-    for (const cookie of cookies) {
-      const name = cookie.split("=")[0].trim();
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
-      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
+    const raw = document.cookie;
+    if (raw) {
+      for (const pair of raw.split(";")) {
+        const name = pair.split("=")[0]?.trim();
+        if (name) {
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=.${window.location.hostname}`;
+        }
+      }
     }
-    // Force hard navigation to login
-    window.location.href = "/login";
+    window.location.replace("/login");
   };
 
   return (
