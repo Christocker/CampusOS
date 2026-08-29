@@ -29,11 +29,10 @@ export function ProgressTracker({
   const totalDone = tasks.filter((t) => completionMap.get(`${t.id}:${currentUserId}`) === true).length;
 
   const userStats = users.map((u) => {
-    const userTasks = tasks.filter((t) => t.userId === u.id);
     const done = tasks.filter((t) => completionMap.get(`${t.id}:${u.id}`) === true).length;
-    return { ...u, total: userTasks.length, done, pct: userTasks.length ? Math.round((done / userTasks.length) * 100) : 0 };
+    return { ...u, total: totalTasks, done, pct: totalTasks ? Math.round((done / totalTasks) * 100) : 0 };
   })
-    .filter((u) => u.total > 0)
+    .filter((u) => u.done > 0 || u.id === currentUserId)
     .sort((a, b) => b.pct - a.pct || b.done - a.done);
 
   const tasksBySubject = subjects.map((s) => ({
