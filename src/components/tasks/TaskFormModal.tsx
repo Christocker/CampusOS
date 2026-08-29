@@ -76,12 +76,12 @@ export function TaskFormModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="subject">Subject</Label>
-            <Select id="subject" name="subjectId" defaultValue={task?.subjectId ?? ""}>
-              <option value="">None</option>
+            <Label htmlFor="subject">Subject *</Label>
+            <Select id="subject" name="subjectId" defaultValue={task?.subjectId ?? ""} required>
+              <option value="">Select a subject</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name}
+                  {(s as Subject & { classCode?: string }).classCode ? `[${(s as Subject & { classCode?: string }).classCode}] ` : ""}{s.name}
                 </option>
               ))}
             </Select>

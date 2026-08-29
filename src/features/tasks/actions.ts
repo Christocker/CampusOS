@@ -69,6 +69,7 @@ export async function createTaskAction(
   const deadlineTime = formData.get("deadlineTime");
 
   if (!title) return { error: "Title is required." };
+  if (!subjectId) return { error: "Subject is required." };
 
   if (subjectId) {
     const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
