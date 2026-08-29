@@ -73,27 +73,25 @@ export function SubjectFormModal({
           <Label>Color</Label>
           <div className="flex flex-wrap gap-3">
             {SUBJECT_COLORS.map((c) => {
-              const active = (subject?.color ?? "#007AFF") === c;
               return (
                 <label key={c} className="relative cursor-pointer">
                   <input
                     type="radio"
                     name="color"
                     value={c}
-                    defaultChecked={active}
+                    defaultChecked={(subject?.color ?? "#007AFF") === c}
                     className="peer sr-only"
                   />
                   <span
                     className={cn(
                       "flex size-10 items-center justify-center rounded-full transition-all",
                       "ring-offset-2 ring-offset-card-light dark:ring-offset-card-dark",
-                      active
-                        ? "ring-[3px] ring-white scale-110 shadow-lg"
-                        : "ring-0 hover:scale-105",
+                      "peer-checked:ring-[3px] peer-checked:ring-white peer-checked:scale-110 peer-checked:shadow-lg",
+                      "ring-0 hover:scale-105",
                     )}
                     style={{ backgroundColor: c }}
                   >
-                    {active && <Check className="size-5 text-white drop-shadow-md" strokeWidth={3} />}
+                    <Check className="size-5 text-white drop-shadow-md opacity-0 peer-checked:opacity-100 transition-opacity" strokeWidth={3} />
                   </span>
                 </label>
               );
