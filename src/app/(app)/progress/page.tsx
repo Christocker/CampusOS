@@ -10,7 +10,7 @@ export default async function ProgressPage() {
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);
 
-  const [subjects, users, tasks] = await Promise.all([
+  const [subjects, users, tasks, completions] = await Promise.all([
     prisma.subject.findMany({
       where: enrolledSubjectFilter(enrolledIds),
       include: { _count: { select: { tasks: true } } },
@@ -23,15 +23,21 @@ export default async function ProgressPage() {
     }),
     prisma.task.findMany({
       where: enrolledIds.length > 0 ? { subjectId: { in: enrolledIds } } : { subjectId: { in: ["__NONE__"] } },
-      select: { id: true, title: true, subjectId: true, userId: true, status: true, deadline: true, priority: true },
+      select: { id: true, title: true, subjectId: true, userId: true, deadline: true, priority: true },
+    }),
+    prisma.taskCompletion.findMany({
+      select: { taskId: true, userId: true, completed: true },
     }),
   ]);
+
+  const completionMap = new Map(completions.map((c) => [`${c.taskId}:${c.userId}`, c.completed]));
 
   return (
     <ProgressTracker
       subjects={subjects}
       users={users}
       tasks={tasks}
+      completionMap={completionMap}
       currentUserId={user.id}
     />
   );

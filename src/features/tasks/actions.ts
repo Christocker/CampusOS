@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { sendEmail } from "@/lib/email";
 import type { ActionState } from "@/features/shared/validations";
-import type { TaskStatus } from "@prisma/client";
 
 function parseDeadline(dateStr: unknown, timeStr: unknown): Date | null {
   if (typeof dateStr !== "string" || dateStr === "") return null;
@@ -161,31 +160,26 @@ export async function updateTaskAction(
 
 export async function setTaskStatusAction(
   id: string,
-  status: TaskStatus,
+  status: string,
 ): Promise<void> {
   const user = await requireUser();
   if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
 
-  const wasCompleted = existing.status === "COMPLETED";
   const nowCompleted = status === "COMPLETED";
 
-  await prisma.task.update({
-    where: { id },
-    data: { status, completedAt: nowCompleted ? new Date() : null },
+  await prisma.taskCompletion.upsert({
+    where: { taskId_userId: { taskId: id, userId: user.id } },
+    update: { completed: nowCompleted, completedAt: nowCompleted ? new Date() : null },
+    create: { taskId: id, userId: user.id, completed: nowCompleted, completedAt: nowCompleted ? new Date() : null },
   });
 
-  if (!wasCompleted && nowCompleted) {
+  if (nowCompleted) {
     const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
     const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
     notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task completed",
       `Marked as completed by ${user.name ?? "a classmate"}.`);
-  } else if (wasCompleted && !nowCompleted) {
-    const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-    const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
-    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task reopened",
-      `Status changed back to ${status.replace(/_/g, " ").toLowerCase()}.`);
   }
 
   revalidatePath("/tasks");
@@ -198,14 +192,16 @@ export async function toggleTaskCompleteAction(id: string): Promise<void> {
   if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
-  const wasCompleted = existing.status === "COMPLETED";
 
-  await prisma.task.update({
-    where: { id },
-    data: {
-      status: wasCompleted ? "NOT_STARTED" : "COMPLETED",
-      completedAt: wasCompleted ? null : new Date(),
-    },
+  const completion = await prisma.taskCompletion.findUnique({
+    where: { taskId_userId: { taskId: id, userId: user.id } },
+  });
+  const wasCompleted = completion?.completed ?? false;
+
+  await prisma.taskCompletion.upsert({
+    where: { taskId_userId: { taskId: id, userId: user.id } },
+    update: { completed: !wasCompleted, completedAt: !wasCompleted ? new Date() : null },
+    create: { taskId: id, userId: user.id, completed: !wasCompleted, completedAt: !wasCompleted ? new Date() : null },
   });
 
   const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });

@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   const weekHorizon = new Date(startOfToday);
   weekHorizon.setDate(startOfToday.getDate() + 8);
 
-  const [tasks, subjects] = await Promise.all([
+  const [tasks, subjects, completions] = await Promise.all([
     prisma.task.findMany({
       where: taskFilter,
       include: { subject: true, user: { select: { name: true } } },
@@ -38,10 +38,16 @@ export default async function DashboardPage() {
       include: { _count: { select: { tasks: true } } },
       orderBy: { name: "asc" },
     }),
+    prisma.taskCompletion.findMany({
+      where: { userId: user.id },
+      select: { taskId: true, completed: true },
+    }),
   ]);
 
-  const active = tasks.filter((t) => t.status !== "COMPLETED");
-  const completed = tasks.filter((t) => t.status === "COMPLETED");
+  const completionMap = new Map(completions.map((c) => [c.taskId, c.completed]));
+
+  const active = tasks.filter((t) => completionMap.get(t.id) !== true);
+  const completed = tasks.filter((t) => completionMap.get(t.id) === true);
 
   const todayList = active
     .filter((t) => t.deadline && t.deadline >= startOfToday && t.deadline <= endOfToday)

@@ -11,7 +11,7 @@ export default async function TasksPage() {
   const enrolledIds = await getEnrolledSubjectIds(user.id);
   const taskFilter = enrolledFilter(enrolledIds);
 
-  const [tasks, subjects] = await Promise.all([
+  const [tasks, subjects, completions] = await Promise.all([
     prisma.task.findMany({
       where: taskFilter,
       include: { subject: true, user: { select: { name: true } } },
@@ -21,7 +21,13 @@ export default async function TasksPage() {
       where: enrolledSubjectFilter(enrolledIds),
       orderBy: { name: "asc" },
     }),
+    prisma.taskCompletion.findMany({
+      where: { userId: user.id },
+      select: { taskId: true, completed: true },
+    }),
   ]);
 
-  return <TasksView tasks={tasks} subjects={subjects} />;
+  const completionMap = new Map(completions.map((c) => [c.taskId, c.completed]));
+
+  return <TasksView tasks={tasks} subjects={subjects} completionMap={completionMap} />;
 }

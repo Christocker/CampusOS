@@ -23,9 +23,13 @@ type FullTask = Task & {
 export function TaskDetail({
   task,
   subjects,
+  completionMap = new Map(),
+  currentUserId,
 }: {
   task: FullTask;
   subjects: Subject[];
+  completionMap?: Map<string, boolean>;
+  currentUserId: string;
 }) {
   const [editOpen, setEditOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -33,6 +37,8 @@ export function TaskDetail({
   const prevPending = useRef(pending);
   const commentState: ActionState = {};
   const [cState, cAction, cPending] = useActionState(addCommentAction, commentState);
+
+  const completed = completionMap.get(currentUserId) ?? false;
 
   useEffect(() => {
     if (prevPending.current && !pending) {
@@ -89,8 +95,8 @@ export function TaskDetail({
       <h1 className="text-[28px] font-bold tracking-tight leading-tight">{task.title}</h1>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        <Badge className={status.bg} style={{ color: status.color }}>
-          {status.label}
+        <Badge className={completed ? "bg-success/15" : "bg-ink/5 dark:bg-ink-inverse/10"} style={{ color: completed ? "#34C759" : undefined }}>
+          {completed ? "Completed" : "Not completed"}
         </Badge>
         <Badge className="bg-ink/5 dark:bg-ink-inverse/10">
           <span className={`size-2 rounded-full ${priority.dot}`} /> {priority.label}

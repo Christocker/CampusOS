@@ -33,11 +33,11 @@ function TaskBody({
   );
 }
 
-export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string }) {
+export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject; href?: string; completionMap?: Map<string, boolean> }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   const prevPending = useRef(pending);
-  const completed = task.status === "COMPLETED";
+  const completed = completionMap?.get(task.id) ?? false;
 
   useEffect(() => {
     if (prevPending.current && !pending) {

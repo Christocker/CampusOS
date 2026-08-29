@@ -7,28 +7,30 @@ import { cn } from "@/lib/utils";
 
 type Subject = { id: string; name: string; color: string; classCode?: string | null };
 type User = { id: string; name: string; image: string | null };
-type Task = { id: string; title: string; subjectId: string | null; userId: string; status: string; deadline?: Date | null; priority?: string };
+type Task = { id: string; title: string; subjectId: string | null; userId: string; deadline?: Date | null; priority?: string };
 
 export function ProgressTracker({
   subjects,
   users,
   tasks,
+  completionMap = new Map(),
   currentUserId,
 }: {
   subjects: Subject[];
   users: User[];
   tasks: Task[];
+  completionMap?: Map<string, boolean>;
   currentUserId: string;
 }) {
   const [tab, setTab] = useState<"leaderboard" | "tasks">("leaderboard");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const totalTasks = tasks.length;
-  const totalDone = tasks.filter((t) => t.status === "COMPLETED").length;
+  const totalDone = tasks.filter((t) => completionMap.get(`${t.id}:${currentUserId}`) === true).length;
 
   const userStats = users.map((u) => {
     const userTasks = tasks.filter((t) => t.userId === u.id);
-    const done = userTasks.filter((t) => t.status === "COMPLETED").length;
+    const done = userTasks.filter((t) => completionMap.get(`${t.id}:${u.id}`) === true).length;
     return { ...u, total: userTasks.length, done, pct: userTasks.length ? Math.round((done / userTasks.length) * 100) : 0 };
   })
     .filter((u) => u.total > 0 || u.id === currentUserId)
@@ -48,7 +50,7 @@ export function ProgressTracker({
   const formatDl = (d: Date | null | undefined) => {
     if (!d) return "No deadline";
     const date = new Date(d);
-    const hasTime = !(date.getHours() === 23 && date.getMinutes() === 59);
+    const hasTime = !(date.getHours() === 0 && date.getMinutes() === 0);
     const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return hasTime ? `${dateStr} ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : dateStr;
   };
@@ -131,7 +133,7 @@ export function ProgressTracker({
             <div className="space-y-3">
               {tasksBySubject.map((s) => {
                 const isOpen = expanded === s.id;
-                const done = s.tasks.filter((t) => t.status === "COMPLETED").length;
+                const done = s.tasks.filter((t) => completionMap.get(`${t.id}:${currentUserId}`) === true).length;
                 return (
                   <div key={s.id} className="card overflow-hidden">
                     <button
@@ -156,7 +158,7 @@ export function ProgressTracker({
                       <div className="border-t border-border-light dark:border-border-dark">
                         {s.tasks.map((t) => {
                           const assignee = users.find((u) => u.id === t.userId);
-                          const isDone = t.status === "COMPLETED";
+                          const isDone = completionMap.get(`${t.id}:${currentUserId}`) === true;
                           return (
                             <div key={t.id} className="flex items-center gap-2 border-b border-border-light/50 px-4 py-2.5 last:border-b-0 dark:border-border-dark/50">
                               {isDone ? (

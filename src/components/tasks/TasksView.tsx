@@ -28,20 +28,23 @@ function startOfToday() {
 export function TasksView({
   tasks,
   subjects,
+  completionMap = new Map(),
 }: {
   tasks: TaskWithSubject[];
   subjects: Subject[];
+  completionMap?: Map<string, boolean>;
 }) {
   const [tab, setTab] = useState<Tab>("All");
   const [open, setOpen] = useState(false);
 
   const filtered = tasks.filter((t) => {
+    const isDone = completionMap.get(t.id) === true;
     if (tab === "All") return true;
-    if (tab === "Completed") return t.status === "COMPLETED";
+    if (tab === "Completed") return isDone;
     const tomorrow = new Date(startOfToday());
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (tab === "Today") {
-      if (t.status === "COMPLETED") return false;
+      if (isDone) return false;
       return !t.deadline || t.deadline < tomorrow;
     }
     if (tab === "Upcoming") {
@@ -84,7 +87,7 @@ export function TasksView({
         <div className="card divide-y divide-separator-light overflow-hidden dark:divide-separator-dark">
           <AnimatePresence initial={false}>
             {filtered.map((t) => (
-              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} />
+              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} completionMap={completionMap} />
             ))}
           </AnimatePresence>
         </div>

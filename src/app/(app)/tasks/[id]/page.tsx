@@ -13,22 +13,27 @@ export default async function TaskDetailPage({
   const user = await requireUser();
   if (!user) return <SessionExpired />;
 
-  const task = await prisma.task.findUnique({
-    where: { id },
-    include: {
-      subject: true,
-      comments: {
-        include: { author: { select: { id: true, name: true, image: true } } },
-        orderBy: { createdAt: "asc" },
+  const [task, subjects, completions] = await Promise.all([
+    prisma.task.findUnique({
+      where: { id },
+      include: {
+        subject: true,
+        comments: {
+          include: { author: { select: { id: true, name: true, image: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.subject.findMany({ orderBy: { name: "asc" } }),
+    prisma.taskCompletion.findMany({
+      where: { taskId: id },
+      select: { userId: true, completed: true },
+    }),
+  ]);
 
   if (!task) return notFound();
 
-  const subjects = await prisma.subject.findMany({
-    orderBy: { name: "asc" },
-  });
+  const completionMap = new Map(completions.map((c) => [c.userId, c.completed]));
 
-  return <TaskDetail task={task} subjects={subjects} />;
+  return <TaskDetail task={task} subjects={subjects} completionMap={completionMap} currentUserId={user.id} />;
 }

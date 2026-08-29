@@ -61,6 +61,7 @@ model User {
   inviteCodes InviteCode[]  @relation("CreatedCodes")
   codeAccounts InviteCode[]  @relation("CodeUser")
   enrollments UserEnrollment[]
+  completions TaskCompletion[]
 }
 
 model Subject {
@@ -99,6 +100,7 @@ model Task {
   user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   group    Group?         @relation(fields: [groupId], references: [id], onDelete: SetNull)
   comments Comment[]
+  completions TaskCompletion[]
 
   @@index([userId])
   @@index([deadline])
@@ -212,4 +214,20 @@ model UserEnrollment {
   @@unique([userId, subjectId])
   @@index([userId])
   @@index([subjectId])
+}
+
+model TaskCompletion {
+  id          String   @id @default(cuid())
+  taskId      String
+  userId      String
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
 }
