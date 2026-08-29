@@ -25,3 +25,4 @@ tunnel-url.txt
 tunnel-url.txt.err
 
 .vercel
+.env*
