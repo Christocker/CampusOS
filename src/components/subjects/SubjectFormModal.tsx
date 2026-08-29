@@ -10,6 +10,7 @@ import type { ActionState } from "@/features/shared/validations";
 import { SUBJECT_COLORS } from "@/lib/constants";
 import type { Subject } from "@prisma/client";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 const initial: ActionState = {};
 
@@ -70,11 +71,11 @@ export function SubjectFormModal({
 
         <div>
           <Label>Color</Label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {SUBJECT_COLORS.map((c) => {
               const active = (subject?.color ?? "#007AFF") === c;
               return (
-                <label key={c} className="relative">
+                <label key={c} className="relative cursor-pointer">
                   <input
                     type="radio"
                     name="color"
@@ -84,11 +85,16 @@ export function SubjectFormModal({
                   />
                   <span
                     className={cn(
-                      "block size-9 cursor-pointer rounded-full ring-offset-2 ring-offset-card-light transition peer-checked:ring-2 peer-checked:ring-ink dark:ring-offset-card-dark",
-                      active && "ring-2",
+                      "flex size-10 items-center justify-center rounded-full transition-all",
+                      "ring-offset-2 ring-offset-card-light dark:ring-offset-card-dark",
+                      active
+                        ? "ring-[3px] ring-white scale-110 shadow-lg"
+                        : "ring-0 hover:scale-105",
                     )}
-                    style={{ backgroundColor: c, boxShadow: active ? `0 0 0 2px ${c}` : undefined }}
-                  />
+                    style={{ backgroundColor: c }}
+                  >
+                    {active && <Check className="size-5 text-white drop-shadow-md" strokeWidth={3} />}
+                  </span>
                 </label>
               );
             })}
