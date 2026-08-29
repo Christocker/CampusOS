@@ -1,4 +1,4 @@
-import { GraduationCap } from "lucide-react";
+import Image from "next/image";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export default async function LoginPage({
@@ -11,8 +11,8 @@ export default async function LoginPage({
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-center text-center">
-        <div className="flex size-16 items-center justify-center rounded-2xl bg-primary text-white">
-          <GraduationCap className="size-8" />
+        <div className="flex size-16 items-center justify-center overflow-hidden rounded-2xl">
+          <Image src="/icons/icon.png" alt="CampusOS" width={64} height={64} priority />
         </div>
         <h1 className="mt-4 text-[28px] font-bold tracking-tight">CampusOS</h1>
         <p className="mt-1 text-note-body text-ink-muted">
