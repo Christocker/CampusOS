@@ -32,7 +32,6 @@ export function ProgressTracker({
     const done = tasks.filter((t) => completionMap.get(`${t.id}:${u.id}`) === true).length;
     return { ...u, total: totalTasks, done, pct: totalTasks ? Math.round((done / totalTasks) * 100) : 0 };
   })
-    .filter((u) => u.done > 0 || u.id === currentUserId)
     .sort((a, b) => b.pct - a.pct || b.done - a.done);
 
   const tasksBySubject = subjects.map((s) => ({
