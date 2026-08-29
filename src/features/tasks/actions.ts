@@ -61,8 +61,8 @@ export async function createTaskAction(
   const user = await requireUser();
   if (!user) return { error: "Session expired. Please sign in again." };
 
-  const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim().toUpperCase();
+  const description = String(formData.get("description") ?? "").trim().toUpperCase();
   const subjectId = String(formData.get("subjectId") ?? "").trim();
   const priority = String(formData.get("priority") ?? "MEDIUM");
   const deadlineDate = formData.get("deadlineDate");
@@ -113,8 +113,8 @@ export async function updateTaskAction(
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return { error: "Task not found." };
 
-  const title = String(formData.get("title") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim().toUpperCase();
+  const description = String(formData.get("description") ?? "").trim().toUpperCase();
   const subjectId = String(formData.get("subjectId") ?? "").trim();
   const status = String(formData.get("status") ?? existing.status);
   const priority = String(formData.get("priority") ?? existing.priority);

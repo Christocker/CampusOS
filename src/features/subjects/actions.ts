@@ -17,12 +17,12 @@ export async function createSubjectAction(
   const user = await requireUser();
   if (!user) return { error: "Session expired. Please sign in again." };
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().toUpperCase();
   const classCode = String(formData.get("classCode") ?? "").trim();
-  const professor = String(formData.get("professor") ?? "").trim();
+  const professor = String(formData.get("professor") ?? "").trim().toUpperCase();
   const semester = String(formData.get("semester") ?? "").trim();
   const color = String(formData.get("color") ?? "#007AFF");
-  const description = String(formData.get("description") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim().toUpperCase();
 
   if (!name) {
     return { error: "Name is required." };
@@ -57,12 +57,12 @@ export async function updateSubjectAction(
     return { error: "Subject not found." };
   }
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().toUpperCase();
   const classCode = String(formData.get("classCode") ?? "").trim();
-  const professor = String(formData.get("professor") ?? "").trim();
+  const professor = String(formData.get("professor") ?? "").trim().toUpperCase();
   const semester = String(formData.get("semester") ?? "").trim();
   const color = String(formData.get("color") ?? "#007AFF");
-  const description = String(formData.get("description") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim().toUpperCase();
 
   if (!name) {
     return { error: "Name is required." };
