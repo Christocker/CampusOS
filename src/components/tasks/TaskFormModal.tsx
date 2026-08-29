@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createTaskAction, updateTaskAction } from "@/features/tasks/actions";
 import type { ActionState } from "@/features/shared/validations";
 import type { Subject, Task } from "@prisma/client";
@@ -40,10 +41,14 @@ export function TaskFormModal({
     isEdit ? updateTaskAction.bind(null, task!.id) : createTaskAction,
     initial,
   );
+  const router = useRouter();
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (state.ok) {
+      router.refresh();
+      onClose();
+    }
+  }, [state.ok, onClose, router]);
 
   return (
     <Modal

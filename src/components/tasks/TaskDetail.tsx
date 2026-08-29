@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useActionState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, Send } from "lucide-react";
@@ -32,6 +32,10 @@ export function TaskDetail({
   const router = useRouter();
   const commentState: ActionState = {};
   const [cState, cAction, cPending] = useActionState(addCommentAction, commentState);
+
+  useEffect(() => {
+    if (cState.ok) router.refresh();
+  }, [cState.ok, router]);
 
   const status = TASK_STATUS[task.status];
   const priority = PRIORITY[task.priority];

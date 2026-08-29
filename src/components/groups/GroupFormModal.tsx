@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createGroupAction } from "@/features/groups/actions";
 import type { ActionState } from "@/features/shared/validations";
 
@@ -17,10 +18,14 @@ export function GroupFormModal({
   onClose: () => void;
 }) {
   const [state, formAction, pending] = useActionState(createGroupAction, initial);
+  const router = useRouter();
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (state.ok) {
+      router.refresh();
+      onClose();
+    }
+  }, [state.ok, onClose, router]);
 
   return (
     <Modal open={open} onClose={onClose} title="New group">

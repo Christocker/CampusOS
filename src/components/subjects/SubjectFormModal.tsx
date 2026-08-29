@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createSubjectAction, updateSubjectAction } from "@/features/subjects/actions";
 import type { ActionState } from "@/features/shared/validations";
 import { SUBJECT_COLORS } from "@/lib/constants";
@@ -26,10 +27,14 @@ export function SubjectFormModal({
     isEdit ? updateSubjectAction.bind(null, subject!.id) : createSubjectAction,
     initial,
   );
+  const router = useRouter();
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (state.ok) {
+      router.refresh();
+      onClose();
+    }
+  }, [state.ok, onClose, router]);
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? "Edit subject" : "New subject"}>

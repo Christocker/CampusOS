@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { cn, formatDeadline } from "@/lib/utils";
 import { toggleTaskCompleteAction } from "@/features/tasks/actions";
 import { PRIORITY, TASK_STATUS } from "@/lib/constants";
@@ -54,6 +55,7 @@ function TaskBody({
 
 export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string }) {
   const [pending, start] = useTransition();
+  const router = useRouter();
   const completed = task.status === "COMPLETED";
   const priority = PRIORITY[task.priority];
 
@@ -68,7 +70,7 @@ export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string 
     >
       <button
         disabled={pending}
-        onClick={() => start(() => toggleTaskCompleteAction(task.id))}
+        onClick={() => start(async () => { await toggleTaskCompleteAction(task.id); router.refresh(); })}
         aria-label={completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
           "flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition",

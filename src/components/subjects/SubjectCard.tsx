@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight, Check, Plus } from "lucide-react";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { enrollSubjectAction, unenrollSubjectAction } from "@/features/subjects/enrollmentActions";
 import type { Subject } from "@prisma/client";
 
@@ -19,17 +20,19 @@ export function SubjectCard({
   showIndicator?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const toggleEnroll = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!canToggle) return;
-    startTransition(() => {
+    startTransition(async () => {
       if (enrolled) {
-        unenrollSubjectAction(subject.id);
+        await unenrollSubjectAction(subject.id);
       } else {
-        enrollSubjectAction(subject.id);
+        await enrollSubjectAction(subject.id);
       }
+      router.refresh();
     });
   };
 

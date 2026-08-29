@@ -4,6 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createGroupTaskAction } from "@/features/groups/actions";
 import type { ActionState } from "@/features/shared/validations";
 import type { Subject } from "@prisma/client";
@@ -31,10 +32,14 @@ export function GroupTaskFormModal({
     createGroupTaskAction.bind(null, groupId),
     initial,
   );
+  const router = useRouter();
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (state.ok) {
+      router.refresh();
+      onClose();
+    }
+  }, [state.ok, onClose, router]);
 
   return (
     <Modal open={open} onClose={onClose} title="New shared task">

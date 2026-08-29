@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition } from "react";
+import { useState, useActionState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, UserPlus, LogOut, Trash2, Crown } from "lucide-react";
@@ -46,6 +46,10 @@ export function GroupDetail({
   );
   const [pending, start] = useTransition();
   const router = useRouter();
+
+  useEffect(() => {
+    if (mState.ok) router.refresh();
+  }, [mState.ok, router]);
 
   return (
     <div>
@@ -94,7 +98,7 @@ export function GroupDetail({
               {m.role === "ADMIN" && <Crown className="size-4 text-warning" />}
               {isOwner && m.user.id !== members.find((x) => x.role === "ADMIN")?.user.id && (
                 <button
-                  onClick={() => start(() => removeMemberAction(group.id, m.user.id))}
+                  onClick={() => start(async () => { await removeMemberAction(group.id, m.user.id); router.refresh(); })}
                   className="text-note-caption font-medium text-danger"
                 >
                   Remove
