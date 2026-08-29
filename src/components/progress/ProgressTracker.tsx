@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { Trophy, ChevronDown, ChevronUp, Check, X, Clock } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { cn } from "@/lib/utils";
 
-type Subject = { id: string; name: string; color: string; classCode?: string | null; _count: { tasks: number } };
+type Subject = { id: string; name: string; color: string; classCode?: string | null };
 type User = { id: string; name: string; image: string | null };
 type Task = { id: string; title: string; subjectId: string | null; userId: string; status: string; deadline?: Date | null; priority?: string };
 
@@ -36,8 +36,22 @@ export function ProgressTracker({
 
   const tasksBySubject = subjects.map((s) => ({
     ...s,
-    tasks: tasks.filter((t) => t.subjectId === s.id),
-  }));
+    tasks: tasks
+      .filter((t) => t.subjectId === s.id)
+      .sort((a, b) => {
+        const aD = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+        const bD = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+        return aD - bD;
+      }),
+  })).filter((s) => s.tasks.length > 0);
+
+  const formatDl = (d: Date | null | undefined) => {
+    if (!d) return "No deadline";
+    const date = new Date(d);
+    const hasTime = !(date.getHours() === 23 && date.getMinutes() === 59);
+    const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return hasTime ? `${dateStr} ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : dateStr;
+  };
 
   return (
     <div>
@@ -112,21 +126,25 @@ export function ProgressTracker({
 
       {tab === "tasks" && (
         <>
-          <h2 className="mb-3 text-base font-semibold">Task progress by subject</h2>
+          <h2 className="mb-3 text-base font-semibold">By subject &amp; deadline</h2>
           {tasksBySubject.length ? (
-            <div className="card divide-y divide-separator-light overflow-hidden dark:divide-separator-dark">
+            <div className="space-y-3">
               {tasksBySubject.map((s) => {
                 const isOpen = expanded === s.id;
                 const done = s.tasks.filter((t) => t.status === "COMPLETED").length;
                 return (
-                  <div key={s.id}>
+                  <div key={s.id} className="card overflow-hidden">
                     <button
                       onClick={() => setExpanded(isOpen ? null : s.id)}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left"
                     >
                       <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{s.name}</p>
+                        <p className="text-sm font-medium">
+                          {(s as Subject & { classCode?: string }).classCode
+                            ? `[${(s as Subject & { classCode?: string }).classCode}] `
+                            : ""}{s.name}
+                        </p>
                         <p className="text-xs text-ink-muted">{done} of {s.tasks.length} done</p>
                       </div>
                       <span className="text-sm font-semibold text-ink">
@@ -135,46 +153,40 @@ export function ProgressTracker({
                       {isOpen ? <ChevronUp className="size-4 text-ink-muted" /> : <ChevronDown className="size-4 text-ink-muted" />}
                     </button>
                     {isOpen && (
-                      <div className="border-t border-border-light bg-ink/[0.02] px-4 py-2 dark:border-border-dark dark:bg-ink-inverse/[0.02]">
-                        {s.tasks.length === 0 ? (
-                          <p className="py-2 text-xs text-ink-muted">No tasks yet.</p>
-                        ) : (
-                          s.tasks.map((t) => {
-                            const assignee = users.find((u) => u.id === t.userId);
-                            const isDone = t.status === "COMPLETED";
-                            const isOverdue = t.deadline && new Date(t.deadline) < new Date() && !isDone;
-                            return (
-                              <div key={t.id} className="flex items-center gap-2 py-1.5">
-                                {isDone ? (
-                                  <Check className="size-3.5 shrink-0 text-success" />
-                                ) : isOverdue ? (
-                                  <X className="size-3.5 shrink-0 text-danger" />
-                                ) : (
-                                  <X className="size-3.5 shrink-0 text-ink-muted/40" />
-                                )}
-                                <div className="min-w-0 flex-1">
-                                  <span className={`block truncate text-xs ${isDone ? "text-ink-muted line-through" : ""}`}>
-                                    {t.title}
-                                  </span>
-                                  <span className="text-[10px] text-ink-muted">
-                                    {assignee?.name ?? "Unassigned"}
-                                    {assignee?.id === currentUserId && " (you)"}
-                                    {t.deadline && ` · Due ${new Date(t.deadline).toLocaleDateString()}`}
-                                  </span>
-                                </div>
-                                {t.priority && (
-                                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${
-                                    t.priority === "HIGH" ? "bg-danger/10 text-danger" :
-                                    t.priority === "MEDIUM" ? "bg-warning/10 text-warning" :
-                                    "bg-ink/5 text-ink-muted"
-                                  }`}>
-                                    {t.priority}
-                                  </span>
-                                )}
+                      <div className="border-t border-border-light dark:border-border-dark">
+                        {s.tasks.map((t) => {
+                          const assignee = users.find((u) => u.id === t.userId);
+                          const isDone = t.status === "COMPLETED";
+                          return (
+                            <div key={t.id} className="flex items-center gap-2 border-b border-border-light/50 px-4 py-2.5 last:border-b-0 dark:border-border-dark/50">
+                              {isDone ? (
+                                <Check className="size-4 shrink-0 text-success" />
+                              ) : (
+                                <X className="size-4 shrink-0 text-ink-muted/40" />
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <span className={`block text-xs font-medium ${isDone ? "text-ink-muted line-through" : ""}`}>
+                                  {t.title}
+                                </span>
+                                <span className="flex items-center gap-1 text-[11px] text-ink-muted">
+                                  <Clock className="size-3" />
+                                  {formatDl(t.deadline)}
+                                </span>
                               </div>
-                            );
-                          })
-                        )}
+                              <span className={cn(
+                                "shrink-0 rounded px-2 py-0.5 text-[11px] font-medium",
+                                isDone
+                                  ? "bg-success/10 text-success"
+                                  : t.userId === currentUserId
+                                    ? "bg-primary/10 text-primary"
+                                    : "bg-ink/5 text-ink-muted",
+                              )}>
+                                {assignee?.name ?? "Unassigned"}
+                                {isDone ? " ✓" : ""}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

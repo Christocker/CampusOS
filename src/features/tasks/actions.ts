@@ -14,36 +14,24 @@ function parseDeadline(dateStr: unknown, timeStr: unknown): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-async function getTaskEmailRecipients(taskId: string, excludeUserId?: string) {
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { subjectId: true },
-  });
-  if (!task?.subjectId) return [];
-
+async function getEmailRecipients(subjectId: string, excludeUserId?: string) {
+  if (!subjectId) return [];
   const enrollments = await prisma.userEnrollment.findMany({
-    where: { subjectId: task.subjectId },
+    where: { subjectId },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
-
   return enrollments
     .filter((e) => e.user.id !== excludeUserId && e.user.email)
     .map((e) => ({ email: e.user.email!, name: e.user.name ?? "there" }));
 }
 
-function buildTaskEmail({
-  recipients,
-  taskTitle,
-  subjectName,
-  event,
-  extra,
-}: {
-  recipients: { email: string; name: string }[];
-  taskTitle: string;
-  subjectName: string;
-  event: string;
-  extra?: string;
-}) {
+function notifyRecipients(
+  recipients: { email: string; name: string }[],
+  taskTitle: string,
+  subjectName: string,
+  event: string,
+  extra?: string,
+) {
   for (const r of recipients) {
     sendEmail({
       to: r.email,
@@ -52,7 +40,7 @@ function buildTaskEmail({
         <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
           <h2 style="color: #1C1C1E;">${event}</h2>
           <p style="color: #8E8E93; font-size: 15px;">
-            Hi ${r.name}, the task <strong>${taskTitle}</strong> in <strong>${subjectName}</strong> was updated.
+            Hi ${r.name}, <strong>${taskTitle}</strong> in <strong>${subjectName}</strong> was updated.
           </p>
           ${extra ? `<div style="background: #F8F8FA; border-radius: 8px; padding: 16px; margin: 16px 0;">
             <p style="margin: 0; font-size: 14px; color: #8E8E93;">${extra}</p>
@@ -76,20 +64,15 @@ export async function createTaskAction(
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const subjectId = String(formData.get("subjectId") ?? "").trim();
-  const status = String(formData.get("status") ?? "NOT_STARTED");
   const priority = String(formData.get("priority") ?? "MEDIUM");
   const deadlineDate = formData.get("deadlineDate");
   const deadlineTime = formData.get("deadlineTime");
 
-  if (!title) {
-    return { error: "Title is required." };
-  }
+  if (!title) return { error: "Title is required." };
 
   if (subjectId) {
     const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-    if (!subject) {
-      return { error: "Invalid subject." };
-    }
+    if (!subject) return { error: "Invalid subject." };
   }
 
   await prisma.task.create({
@@ -97,7 +80,7 @@ export async function createTaskAction(
       title,
       description: description || null,
       subjectId: subjectId || null,
-      status: status as "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "COMPLETED",
+      status: "NOT_STARTED",
       priority: priority as "LOW" | "MEDIUM" | "HIGH",
       deadline: parseDeadline(deadlineDate, deadlineTime),
       userId: user.id,
@@ -106,18 +89,11 @@ export async function createTaskAction(
 
   if (subjectId) {
     const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-    const subjectName = subject?.name ?? "a subject";
     const deadline = parseDeadline(deadlineDate, deadlineTime);
     const deadlineStr = deadline ? ` Due: ${deadline.toLocaleDateString()}` : "";
-    const recipients = await getTaskEmailRecipients("_", user.id);
-
-    buildTaskEmail({
-      recipients,
-      taskTitle: title,
-      subjectName,
-      event: "New task assigned",
-      extra: `Priority: ${priority}${deadlineStr}${description ? `<br/>${description}` : ""}`,
-    });
+    const recipients = await getEmailRecipients(subjectId, user.id);
+    notifyRecipients(recipients, title, subject?.name ?? "a subject", "New task assigned",
+      `Priority: ${priority}${deadlineStr}${description ? `<br/>${description}` : ""}`);
   }
 
   revalidatePath("/tasks");
@@ -134,9 +110,7 @@ export async function updateTaskAction(
   const user = await requireUser();
   if (!user) return { error: "Session expired. Please sign in again." };
   const existing = await prisma.task.findUnique({ where: { id } });
-  if (!existing) {
-    return { error: "Task not found." };
-  }
+  if (!existing) return { error: "Task not found." };
 
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
@@ -146,9 +120,7 @@ export async function updateTaskAction(
   const deadlineDate = formData.get("deadlineDate");
   const deadlineTime = formData.get("deadlineTime");
 
-  if (!title) {
-    return { error: "Title is required." };
-  }
+  if (!title) return { error: "Title is required." };
 
   const changes: string[] = [];
   if (title !== existing.title) changes.push(`Title changed to "${title}"`);
@@ -169,21 +141,15 @@ export async function updateTaskAction(
       status: status as "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "COMPLETED",
       priority: priority as "LOW" | "MEDIUM" | "HIGH",
       deadline: newDeadline,
-      completedAt:
-        status === "COMPLETED" ? new Date() : existing.completedAt ?? null,
+      completedAt: status === "COMPLETED" ? new Date() : existing.completedAt ?? null,
     },
   });
 
   if (changes.length > 0) {
-    const subject = await prisma.subject.findUnique({ where: { id: subjectId || (existing.subjectId ?? "") } });
-    const recipients = await getTaskEmailRecipients(id, user.id);
-    buildTaskEmail({
-      recipients,
-      taskTitle: title,
-      subjectName: subject?.name ?? "a subject",
-      event: "Task updated",
-      extra: changes.join("<br/>"),
-    });
+    const subId = subjectId || existing.subjectId || "";
+    const subject = await prisma.subject.findUnique({ where: { id: subId } });
+    const recipients = await getEmailRecipients(subId, user.id);
+    notifyRecipients(recipients, title, subject?.name ?? "a subject", "Task updated", changes.join("<br/>"));
   }
 
   revalidatePath("/tasks");
@@ -206,32 +172,19 @@ export async function setTaskStatusAction(
 
   await prisma.task.update({
     where: { id },
-    data: {
-      status,
-      completedAt: nowCompleted ? new Date() : null,
-    },
+    data: { status, completedAt: nowCompleted ? new Date() : null },
   });
 
   if (!wasCompleted && nowCompleted) {
     const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-    const recipients = await getTaskEmailRecipients(id, user.id);
-    buildTaskEmail({
-      recipients,
-      taskTitle: existing.title,
-      subjectName: subject?.name ?? "a subject",
-      event: "Task completed",
-      extra: `Marked as completed by ${user.name ?? "a classmate"}.`,
-    });
+    const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
+    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task completed",
+      `Marked as completed by ${user.name ?? "a classmate"}.`);
   } else if (wasCompleted && !nowCompleted) {
     const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-    const recipients = await getTaskEmailRecipients(id, user.id);
-    buildTaskEmail({
-      recipients,
-      taskTitle: existing.title,
-      subjectName: subject?.name ?? "a subject",
-      event: "Task reopened",
-      extra: `Status changed back to ${status.replace(/_/g, " ").toLowerCase()}.`,
-    });
+    const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
+    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task reopened",
+      `Status changed back to ${status.replace(/_/g, " ").toLowerCase()}.`);
   }
 
   revalidatePath("/tasks");
@@ -244,26 +197,21 @@ export async function toggleTaskCompleteAction(id: string): Promise<void> {
   if (!user) return;
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return;
-  const completed = existing.status === "COMPLETED";
-  const newStatus = completed ? "NOT_STARTED" : "COMPLETED";
+  const wasCompleted = existing.status === "COMPLETED";
 
   await prisma.task.update({
     where: { id },
     data: {
-      status: newStatus,
-      completedAt: completed ? null : new Date(),
+      status: wasCompleted ? "NOT_STARTED" : "COMPLETED",
+      completedAt: wasCompleted ? null : new Date(),
     },
   });
 
   const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-  const recipients = await getTaskEmailRecipients(id, user.id);
-  buildTaskEmail({
-    recipients,
-    taskTitle: existing.title,
-    subjectName: subject?.name ?? "a subject",
-    event: completed ? "Task reopened" : "Task completed",
-    extra: `Marked as ${completed ? "incomplete" : "completed"} by ${user.name ?? "a classmate"}.`,
-  });
+  const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
+  notifyRecipients(recipients, existing.title, subject?.name ?? "a subject",
+    wasCompleted ? "Task reopened" : "Task completed",
+    `Marked as ${wasCompleted ? "incomplete" : "completed"} by ${user.name ?? "a classmate"}.`);
 
   revalidatePath("/tasks");
   revalidatePath("/");
@@ -278,14 +226,9 @@ export async function deleteTaskAction(id: string): Promise<void> {
 
   if (existing.subjectId) {
     const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId } });
-    const recipients = await getTaskEmailRecipients(id, user.id);
-    buildTaskEmail({
-      recipients,
-      taskTitle: existing.title,
-      subjectName: subject?.name ?? "a subject",
-      event: "Task deleted",
-      extra: `Deleted by ${user.name ?? "a classmate"}.`,
-    });
+    const recipients = await getEmailRecipients(existing.subjectId, user.id);
+    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task deleted",
+      `Deleted by ${user.name ?? "a classmate"}.`);
   }
 
   await prisma.task.delete({ where: { id } });

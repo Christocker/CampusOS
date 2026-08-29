@@ -51,11 +51,14 @@ export function SubjectCard({
           style={{ backgroundColor: subject.color }}
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-note-body font-medium">{subject.name}</p>
+          <p className="truncate text-note-body font-medium">
+            {(subject as Subject & { classCode?: string }).classCode
+              ? `[${(subject as Subject & { classCode?: string }).classCode}] `
+              : ""}{subject.name}
+          </p>
           <p className="truncate text-note-caption text-ink-muted">
-            {(subject as Subject & { classCode?: string }).classCode ? `#${(subject as Subject & { classCode?: string }).classCode}` : ""}
-            {subject.professor ? `${(subject as Subject & { classCode?: string }).classCode ? " · " : ""}Prof. ${subject.professor}` : ""}
-            {subject._count?.tasks ? ` · ${subject._count.tasks} tasks` : ""}
+            {subject.professor ? `Prof. ${subject.professor}` : ""}
+            {subject._count?.tasks ? `${subject.professor ? " · " : ""}${subject._count.tasks} tasks` : ""}
           </p>
         </div>
         {canToggle ? (

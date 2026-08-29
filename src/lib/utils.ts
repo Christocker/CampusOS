@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** Format a date as e.g. "Today 11:59 PM" / "Friday" / "Mar 14". */
+/** Format a date as e.g. "Today 11:59 PM" / "Friday" / "Mar 14". Time only shown if explicitly set (not default 23:59). */
 export function formatDeadline(date: Date | string | null | undefined): string {
   if (!date) return "No deadline";
   const d = typeof date === "string" ? new Date(date) : date;
@@ -16,15 +16,15 @@ export function formatDeadline(date: Date | string | null | undefined): string {
   tomorrow.setDate(now.getDate() + 1);
   const isTomorrow = d.toDateString() === tomorrow.toDateString();
 
-  const time = d.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const hasExplicitTime = !(d.getHours() === 23 && d.getMinutes() === 59);
+  const time = hasExplicitTime
+    ? ` ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
+    : "";
 
-  if (isToday) return `Today ${time}`;
-  if (isTomorrow) return `Tomorrow ${time}`;
+  if (isToday) return `Today${time}`;
+  if (isTomorrow) return `Tomorrow${time}`;
   const day = d.toLocaleDateString(undefined, { weekday: "long" });
-  return `${day} ${time}`;
+  return `${day}${time}`;
 }
 
 /** Short date label e.g. "Mar 14". */

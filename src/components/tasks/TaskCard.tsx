@@ -7,48 +7,28 @@ import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn, formatDeadline } from "@/lib/utils";
 import { toggleTaskCompleteAction } from "@/features/tasks/actions";
-import { PRIORITY, TASK_STATUS } from "@/lib/constants";
+import { PRIORITY } from "@/lib/constants";
 import type { Task, Subject } from "@prisma/client";
 
 type TaskWithSubject = Task & {
   subject?: Subject | null;
-  user?: { name: string } | null;
 };
 
 function TaskBody({
   task,
   completed,
-  priority,
 }: {
   task: TaskWithSubject;
   completed: boolean;
-  priority: (typeof PRIORITY)[keyof typeof PRIORITY];
 }) {
   return (
     <div className="min-w-0 flex-1">
       <p className={cn("truncate text-note-body font-medium", completed && "text-ink-muted line-through")}>
         {task.title}
       </p>
-      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-note-caption text-ink-muted">
-        {task.subject && (
-          <span className="inline-flex items-center gap-1">
-            <span className="size-1.5 rounded-full" style={{ backgroundColor: task.subject.color }} />
-            {task.subject.name}
-          </span>
-        )}
-        {task.user && (
-          <span className="inline-flex items-center gap-1">
-            <span className="size-1.5 rounded-full bg-ink-muted/40" />
-            {task.user.name.split(" ")[0]}
-          </span>
-        )}
-        <span>{formatDeadline(task.deadline)}</span>
-        {task.status !== "COMPLETED" && task.status !== "NOT_STARTED" && (
-          <span style={{ color: TASK_STATUS[task.status].color }}>
-            {TASK_STATUS[task.status].label}
-          </span>
-        )}
-      </div>
+      <p className="mt-0.5 text-note-caption text-ink-muted">
+        {formatDeadline(task.deadline)}
+      </p>
     </div>
   );
 }
@@ -58,7 +38,6 @@ export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string 
   const router = useRouter();
   const prevPending = useRef(pending);
   const completed = task.status === "COMPLETED";
-  const priority = PRIORITY[task.priority];
 
   useEffect(() => {
     if (prevPending.current && !pending) {
@@ -78,7 +57,7 @@ export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string 
     >
       <button
         disabled={pending}
-        onClick={() => start(async () => { await toggleTaskCompleteAction(task.id); router.refresh(); })}
+        onClick={() => start(() => toggleTaskCompleteAction(task.id))}
         aria-label={completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
           "flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition",
@@ -92,17 +71,17 @@ export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string 
 
       {href ? (
         <Link href={href} className="min-w-0 flex-1">
-          <TaskBody task={task} completed={completed} priority={priority} />
+          <TaskBody task={task} completed={completed} />
         </Link>
       ) : (
         <div className="min-w-0 flex-1">
-          <TaskBody task={task} completed={completed} priority={priority} />
+          <TaskBody task={task} completed={completed} />
         </div>
       )}
 
       <span
-        className={cn("size-2 shrink-0 rounded-full", priority.dot)}
-        title={`${priority.label} priority`}
+        className={cn("size-2 shrink-0 rounded-full", PRIORITY[task.priority].dot)}
+        title={`${PRIORITY[task.priority].label} priority`}
       />
     </motion.div>
   );
