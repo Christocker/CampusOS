@@ -73,7 +73,7 @@ export function GroupDetail({
             disabled={pending}
             onClick={() => {
               if (!confirm("Delete this group and all its data?")) return;
-              start(async () => { await deleteGroupAction(group.id); router.replace("/groups"); router.refresh(); });
+              start(async () => { await deleteGroupAction(group.id); router.push("/groups"); });
             }}
             className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger"
             aria-label="Delete group"
@@ -89,7 +89,7 @@ export function GroupDetail({
             disabled={pending}
             onClick={() => {
               if (!confirm("Leave this group?")) return;
-              start(async () => { await leaveGroupAction(group.id); router.replace("/groups"); router.refresh(); });
+              start(async () => { await leaveGroupAction(group.id); router.push("/groups"); });
             }}
             className="flex size-10 items-center justify-center rounded-full bg-ink/5 text-ink-muted dark:bg-ink-inverse/10"
             aria-label="Leave group"

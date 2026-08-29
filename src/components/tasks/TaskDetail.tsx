@@ -71,8 +71,7 @@ export function TaskDetail({
               if (!confirm("Delete this task?")) return;
               start(async () => {
                 await deleteTaskAction(task.id);
-                router.replace("/tasks");
-                router.refresh();
+                router.push("/tasks");
               });
             }}
             className="flex size-9 items-center justify-center rounded-full bg-danger/10 text-danger"

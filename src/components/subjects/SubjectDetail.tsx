@@ -48,8 +48,7 @@ export function SubjectDetail({
               if (!confirm("Delete this subject and all its tasks?")) return;
               start(async () => {
                 await deleteSubjectAction(subject.id);
-                router.replace("/subjects");
-                router.refresh();
+                router.push("/subjects");
               });
             }}
             className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger"
