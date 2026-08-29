@@ -26,9 +26,15 @@ function TaskBody({
       <p className={cn("truncate text-note-body font-medium", completed && "text-ink-muted line-through")}>
         {task.title}
       </p>
-      <p className="mt-0.5 text-note-caption text-ink-muted">
-        {formatDeadline(task.deadline)}
-      </p>
+      <div className="mt-0.5 flex items-center gap-x-2 text-note-caption text-ink-muted">
+        {task.subject && (
+          <span className="inline-flex items-center gap-1">
+            <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: task.subject.color }} />
+            {task.subject.name}
+          </span>
+        )}
+        <span>{formatDeadline(task.deadline)}</span>
+      </div>
     </div>
   );
 }
