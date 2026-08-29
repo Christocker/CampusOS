@@ -27,8 +27,8 @@ export async function createGroupAction(
 
   const group = await prisma.group.create({
     data: {
-      name: parsed.data.name,
-      description: parsed.data.description || null,
+      name: String(parsed.data.name).toUpperCase(),
+      description: parsed.data.description ? String(parsed.data.description).toUpperCase() : null,
       ownerId: user.id,
       members: { create: { userId: user.id, role: "ADMIN" } },
     },
@@ -136,8 +136,8 @@ export async function createGroupTaskAction(
   const { title, description, status, priority, deadline } = parsed.data;
   await prisma.task.create({
     data: {
-      title,
-      description: description || null,
+      title: String(title).toUpperCase(),
+      description: description ? String(description).toUpperCase() : null,
       status,
       priority,
       deadline: deadline ? new Date(deadline) : null,
@@ -170,7 +170,7 @@ export async function addCommentAction(
 
   // Shared workspace: any signed-in user may comment on any task.
   await prisma.comment.create({
-    data: { taskId: parsed.data.taskId, authorId: user.id, content: parsed.data.content },
+    data: { taskId: parsed.data.taskId, authorId: user.id, content: String(parsed.data.content).toUpperCase() },
   });
 
   revalidatePath(`/tasks/${parsed.data.taskId}`);
