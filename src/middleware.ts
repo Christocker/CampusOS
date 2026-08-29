@@ -1,48 +1,37 @@
-import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { authConfig } from "@/lib/auth.config";
+import type { NextRequest } from "next/server";
 
-const { auth } = NextAuth(authConfig);
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
 
-export default auth((req) => {
-  const { nextUrl } = req;
-  const path = nextUrl.pathname;
-
-  // Handle /signout: clear all cookies and redirect to /login
+  // /signout: delete ALL cookies and redirect to /login
   if (path === "/signout") {
-    const response = NextResponse.redirect(new URL("/login", nextUrl));
-    const cookieNames = ["authjs.session-token", "__Secure-authjs.session-token",
-      "authjs.callback-url", "__Secure-authjs.callback-url",
-      "authjs.csrf-token", "__Secure-authjs.csrf-token"];
-    for (const name of cookieNames) {
-      response.cookies.delete(name);
-    }
-    // Also delete any cookie starting with authjs
-    for (const cookie of req.cookies.getAll()) {
-      if (cookie.name.includes("authjs")) {
-        response.cookies.delete(cookie.name);
-      }
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    const response = NextResponse.redirect(url);
+    for (const cookie of request.cookies.getAll()) {
+      response.cookies.delete(cookie.name);
     }
     return response;
   }
 
-  const isLoggedIn = !!req.auth;
-  const isAuthPage = path === "/login";
-  const isApiAuth = path.startsWith("/api/auth");
-
-  if (isApiAuth) return;
-
-  if (isAuthPage) {
-    if (isLoggedIn) return Response.redirect(new URL("/", nextUrl));
-    return;
+  // /login, /api/auth/*, /signout: allow through
+  if (path === "/login" || path.startsWith("/api/auth")) {
+    return NextResponse.next();
   }
 
-  if (!isLoggedIn) {
-    const loginUrl = new URL("/login", nextUrl);
-    loginUrl.searchParams.set("callbackUrl", path);
-    return Response.redirect(loginUrl);
+  // Check for any auth cookie — if missing, redirect to /login
+  const hasCookie = request.cookies.getAll().some((c) =>
+    c.name.includes("authjs") || c.name.includes("next-auth")
+  );
+  if (!hasCookie) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
-});
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
