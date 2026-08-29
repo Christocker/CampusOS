@@ -66,7 +66,11 @@ export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string 
             : "border-separator-light dark:border-separator-dark",
         )}
       >
-        <Check className="size-3.5" strokeWidth={3} />
+        {pending ? (
+          <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+        ) : (
+          <Check className="size-3.5" strokeWidth={3} />
+        )}
       </button>
 
       {href ? (

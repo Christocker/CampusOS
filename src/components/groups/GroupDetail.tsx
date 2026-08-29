@@ -78,7 +78,11 @@ export function GroupDetail({
             className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger"
             aria-label="Delete group"
           >
-            <Trash2 className="size-4" />
+            {pending ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <Trash2 className="size-4" />
+            )}
           </button>
         ) : (
           <button
@@ -90,7 +94,11 @@ export function GroupDetail({
             className="flex size-10 items-center justify-center rounded-full bg-ink/5 text-ink-muted dark:bg-ink-inverse/10"
             aria-label="Leave group"
           >
-            <LogOut className="size-4" />
+            {pending ? (
+              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <LogOut className="size-4" />
+            )}
           </button>
         )}
       </div>
