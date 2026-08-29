@@ -52,7 +52,8 @@ export function InviteManager({
           <Input
             id="label"
             name="label"
-            placeholder="e.g. For Alice"
+            placeholder="e.g. FOR ALICE"
+            autoCapitalize="characters"
           />
         </div>
         <Button type="submit" loading={pending}>
@@ -176,7 +177,8 @@ function CodeRow({
                 }
               }}
               className="w-full rounded-lg border border-primary bg-white px-2 py-0.5 text-xs outline-none focus:ring-1 focus:ring-primary dark:bg-card-dark"
-              placeholder="Label..."
+                placeholder="LABEL..."
+                autoCapitalize="characters"
             />
           </div>
         ) : (

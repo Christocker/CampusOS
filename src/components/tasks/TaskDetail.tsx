@@ -138,7 +138,7 @@ export function TaskDetail({
       <form action={cAction} className="mt-4 space-y-2">
         <input type="hidden" name="taskId" value={task.id} />
         <Label htmlFor="content">Add a comment</Label>
-        <Textarea id="content" name="content" placeholder="Write something…" />
+        <Textarea id="content" name="content" placeholder="Write something…" autoCapitalize="characters" />
         {cState.error && <p className="text-note-caption text-danger">{cState.error}</p>}
         <div className="flex justify-end">
           <Button type="submit" size="sm" loading={cPending}>

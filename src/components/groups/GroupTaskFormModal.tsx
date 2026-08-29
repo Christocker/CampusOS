@@ -46,14 +46,14 @@ export function GroupTaskFormModal({
       <form action={formAction} className="space-y-4">
         <div>
           <Label htmlFor="gt-title">Title</Label>
-          <Input id="gt-title" name="title" placeholder="e.g. Experiment 3" />
+          <Input id="gt-title" name="title" placeholder="e.g. Experiment 3" autoCapitalize="characters" />
           {state.fieldErrors?.title && (
             <p className="mt-1 text-xs text-danger">{state.fieldErrors.title[0]}</p>
           )}
         </div>
         <div>
           <Label htmlFor="gt-desc">Description</Label>
-          <Textarea id="gt-desc" name="description" placeholder="Optional" />
+          <Textarea id="gt-desc" name="description" placeholder="Optional" autoCapitalize="characters" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

@@ -38,6 +38,8 @@
     @apply border border-border-light focus:border-primary focus:ring-2 focus:ring-primary/20;
     @apply dark:bg-card-dark dark:border-border-dark dark:text-ink-inverse;
     @apply placeholder:text-ink-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
 
   .no-scrollbar::-webkit-scrollbar {
