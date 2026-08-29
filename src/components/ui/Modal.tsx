@@ -44,7 +44,7 @@ export function Modal({ open, onClose, title, description, children, className }
             role="dialog"
             aria-modal="true"
             className={cn(
-              "relative z-10 w-full max-w-lg rounded-t-3xl sm:rounded-3xl glass p-5 pb-safe max-h-[90vh] overflow-y-auto",
+              "relative z-10 w-full max-w-lg rounded-t-3xl sm:rounded-3xl glass p-5 pb-7 sm:pb-8 max-h-[90vh] overflow-y-auto",
               className,
             )}
             initial={{ y: 40, opacity: 0, scale: 0.98 }}
