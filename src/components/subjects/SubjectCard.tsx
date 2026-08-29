@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+
 import { ChevronRight, Check, Plus } from "lucide-react";
 import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ export function SubjectCard({
 
   return (
     <Link href={`/subjects/${subject.id}`}>
-      <motion.div whileTap={{ scale: 0.99 }} className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3">
         <span
           className="size-2.5 shrink-0 rounded-full"
           style={{ backgroundColor: subject.color }}
@@ -85,7 +85,7 @@ export function SubjectCard({
             <Check className="size-4" />
           </span>
         ) : null}
-      </motion.div>
+      </div>
     </Link>
   );
 }

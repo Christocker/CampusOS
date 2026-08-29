@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+
 import { Check } from "lucide-react";
 import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -47,12 +47,7 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
   }, [pending, router]);
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.2 }}
+    <div
       className="flex items-center gap-3 px-4 py-3"
     >
       <button
@@ -87,6 +82,6 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
         className={cn("size-2 shrink-0 rounded-full", PRIORITY[task.priority].dot)}
         title={`${PRIORITY[task.priority].label} priority`}
       />
-    </motion.div>
+    </div>
   );
 }
