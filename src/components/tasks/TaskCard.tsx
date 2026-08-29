@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
-import { useTransition } from "react";
+import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn, formatDeadline } from "@/lib/utils";
 import { toggleTaskCompleteAction } from "@/features/tasks/actions";
@@ -56,8 +56,16 @@ function TaskBody({
 export function TaskCard({ task, href }: { task: TaskWithSubject; href?: string }) {
   const [pending, start] = useTransition();
   const router = useRouter();
+  const prevPending = useRef(pending);
   const completed = task.status === "COMPLETED";
   const priority = PRIORITY[task.priority];
+
+  useEffect(() => {
+    if (prevPending.current && !pending) {
+      router.refresh();
+    }
+    prevPending.current = pending;
+  }, [pending, router]);
 
   return (
     <motion.div

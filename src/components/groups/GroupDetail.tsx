@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition, useEffect } from "react";
+import { useState, useActionState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, UserPlus, LogOut, Trash2, Crown } from "lucide-react";
@@ -46,6 +46,14 @@ export function GroupDetail({
   );
   const [pending, start] = useTransition();
   const router = useRouter();
+  const prevPending = useRef(pending);
+
+  useEffect(() => {
+    if (prevPending.current && !pending) {
+      router.refresh();
+    }
+    prevPending.current = pending;
+  }, [pending, router]);
 
   useEffect(() => {
     if (mState.ok) router.refresh();

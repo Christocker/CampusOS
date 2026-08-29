@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ChevronRight, Check, Plus } from "lucide-react";
-import { useTransition } from "react";
+import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { enrollSubjectAction, unenrollSubjectAction } from "@/features/subjects/enrollmentActions";
 import type { Subject } from "@prisma/client";
@@ -21,18 +21,25 @@ export function SubjectCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const prevPending = useRef(isPending);
+
+  useEffect(() => {
+    if (prevPending.current && !isPending) {
+      router.refresh();
+    }
+    prevPending.current = isPending;
+  }, [isPending, router]);
 
   const toggleEnroll = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!canToggle) return;
-    startTransition(async () => {
+    startTransition(() => {
       if (enrolled) {
-        await unenrollSubjectAction(subject.id);
+        unenrollSubjectAction(subject.id);
       } else {
-        await enrollSubjectAction(subject.id);
+        enrollSubjectAction(subject.id);
       }
-      router.refresh();
     });
   };
 
@@ -62,7 +69,13 @@ export function SubjectCard({
             }`}
             aria-label={enrolled ? "Unenroll" : "Enroll"}
           >
-            {enrolled ? <Check className="size-4" /> : <Plus className="size-4" />}
+            {isPending ? (
+              <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : enrolled ? (
+              <Check className="size-4" />
+            ) : (
+              <Plus className="size-4" />
+            )}
           </button>
         ) : showIndicator && enrolled ? (
           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">

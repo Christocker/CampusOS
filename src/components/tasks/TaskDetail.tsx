@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState, useTransition, useEffect } from "react";
+import { useState, useActionState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, Send } from "lucide-react";
@@ -30,8 +30,16 @@ export function TaskDetail({
   const [editOpen, setEditOpen] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
+  const prevPending = useRef(pending);
   const commentState: ActionState = {};
   const [cState, cAction, cPending] = useActionState(addCommentAction, commentState);
+
+  useEffect(() => {
+    if (prevPending.current && !pending) {
+      router.refresh();
+    }
+    prevPending.current = pending;
+  }, [pending, router]);
 
   useEffect(() => {
     if (cState.ok) router.refresh();
