@@ -9,7 +9,7 @@ import type { TaskStatus } from "@prisma/client";
 
 function parseDeadline(dateStr: unknown, timeStr: unknown): Date | null {
   if (typeof dateStr !== "string" || dateStr === "") return null;
-  const time = typeof timeStr === "string" && timeStr !== "" ? timeStr : "23:59";
+  const time = typeof timeStr === "string" && timeStr !== "" ? timeStr : "00:00";
   const d = new Date(`${dateStr}T${time}`);
   return Number.isNaN(d.getTime()) ? null : d;
 }

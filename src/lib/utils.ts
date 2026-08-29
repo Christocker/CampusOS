@@ -16,7 +16,7 @@ export function formatDeadline(date: Date | string | null | undefined): string {
   tomorrow.setDate(now.getDate() + 1);
   const isTomorrow = d.toDateString() === tomorrow.toDateString();
 
-  const hasExplicitTime = !(d.getHours() === 23 && d.getMinutes() === 59);
+  const hasExplicitTime = !(d.getHours() === 0 && d.getMinutes() === 0);
   const time = hasExplicitTime
     ? ` ${d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
     : "";
