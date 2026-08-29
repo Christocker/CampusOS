@@ -67,12 +67,14 @@ export function TaskDetail({
           </button>
           <button
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              if (!confirm("Delete this task?")) return;
               start(async () => {
                 await deleteTaskAction(task.id);
-                router.push("/tasks");
-              })
-            }
+                router.replace("/tasks");
+                router.refresh();
+              });
+            }}
             className="flex size-9 items-center justify-center rounded-full bg-danger/10 text-danger"
             aria-label="Delete"
           >

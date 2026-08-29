@@ -44,12 +44,14 @@ export function SubjectDetail({
           </button>
           <button
             disabled={pending}
-            onClick={() =>
+            onClick={() => {
+              if (!confirm("Delete this subject and all its tasks?")) return;
               start(async () => {
                 await deleteSubjectAction(subject.id);
-                router.push("/subjects");
-              })
-            }
+                router.replace("/subjects");
+                router.refresh();
+              });
+            }}
             className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger"
             aria-label="Delete"
           >
