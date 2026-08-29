@@ -49,7 +49,7 @@ export function SubjectFormModal({
         </div>
 
         <div>
-          <Label htmlFor="classCode">Class Code</Label>
+          <Label htmlFor="classCode">Class ID</Label>
           <Input id="classCode" name="classCode" defaultValue={(subject as Subject & { classCode?: string })?.classCode ?? ""} placeholder="e.g. 1111" autoCapitalize="characters" inputMode="numeric" />
         </div>
 
