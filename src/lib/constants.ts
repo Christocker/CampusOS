@@ -9,6 +9,18 @@ export const SUBJECT_COLORS = [
   "#5856D6",
   "#FF2D55",
   "#00C7BE",
+  "#FFCC00",
+  "#8E8E93",
+  "#FF6B6B",
+  "#48DBFB",
+  "#FECA57",
+  "#1DD1A1",
+  "#EE5A24",
+  "#A3CB38",
+  "#6C5CE7",
+  "#FD79A8",
+  "#00B894",
+  "#E17055",
 ] as const;
 
 export const TASK_STATUS: Record<
