@@ -58,7 +58,12 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
     >
       <button
         disabled={pending}
-        onClick={() => start(() => toggleTaskCompleteAction(task.id))}
+        onClick={() =>
+          start(async () => {
+            const res = await toggleTaskCompleteAction(task.id);
+            if (res?.error) alert(res.error);
+          })
+        }
         aria-label={completed ? "Mark incomplete" : "Mark complete"}
         className={cn(
           "flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition",

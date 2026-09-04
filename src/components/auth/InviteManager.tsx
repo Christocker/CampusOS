@@ -3,7 +3,7 @@
 import { useActionState, useTransition, useState, useRef, useEffect } from "react";
 import { Copy, Check, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Input, Label } from "@/components/ui/Input";
+import { Input, Label, Select } from "@/components/ui/Input";
 import { createInviteCodeAction } from "@/features/auth/inviteActions";
 import {
   deleteInviteCodeAction,
@@ -46,7 +46,11 @@ export function InviteManager({
 
   return (
     <div className="space-y-6">
-      <form action={formAction} className="card space-y-3 p-4">
+      <form
+        key={`codes-${codes.length}`}
+        action={formAction}
+        className="card space-y-3 p-4"
+      >
         <div>
           <Label htmlFor="label">Label (who is this for?)</Label>
           <Input
@@ -54,7 +58,16 @@ export function InviteManager({
             name="label"
             placeholder="e.g. FOR ALICE"
             autoCapitalize="characters"
+            maxLength={60}
+            required
           />
+        </div>
+        <div>
+          <Label htmlFor="role">Account role</Label>
+          <Select id="role" name="role" defaultValue="STUDENT">
+            <option value="STUDENT">Student</option>
+            <option value="ADMIN">Admin (full workspace access)</option>
+          </Select>
         </div>
         <Button type="submit" loading={pending}>
           <Plus className="size-4" /> Generate code
@@ -133,14 +146,22 @@ function CodeRow({
   const saveLabel = () => {
     setEditing(false);
     if (label !== (code.label ?? "")) {
-      startTransition(() => updateInviteCodeLabelAction(code.id, label));
+      startTransition(async () => {
+        const res = await updateInviteCodeLabelAction(code.id, label);
+        if (res?.error) alert(res.error);
+      });
     }
   };
 
   const handleDelete = () => {
     if (!confirm("Delete this code?")) return;
-    startTransition(() => deleteInviteCodeAction(code.id));
+    startTransition(async () => {
+      const res = await deleteInviteCodeAction(code.id);
+      if (res?.error) alert(res.error);
+    });
   };
+
+  const expired = Boolean(code.expiresAt) && new Date(code.expiresAt!) <= new Date();
 
   return (
     <div className="flex items-center gap-3 p-3">

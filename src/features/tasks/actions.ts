@@ -3,14 +3,37 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { sendEmail } from "@/lib/email";
-import type { ActionState } from "@/features/shared/validations";
+import { userCanUseSubject } from "@/lib/enrollment";
+import { parseWallClock } from "@/lib/datetime";
+import { sendEmail, escapeHtml } from "@/lib/email";
+import { taskSchema, type ActionState } from "@/features/shared/validations";
 
-function parseDeadline(dateStr: unknown, timeStr: unknown): Date | null {
-  if (typeof dateStr !== "string" || dateStr === "") return null;
-  const time = typeof timeStr === "string" && timeStr !== "" ? timeStr : "00:00";
-  const d = new Date(`${dateStr}T${time}`);
-  return Number.isNaN(d.getTime()) ? null : d;
+/** Date-only deadlines mean "by end of day". */
+function parseDeadline(
+  dateStr: unknown,
+  timeStr: unknown,
+  tzOffsetRaw: unknown,
+): Date | null {
+  return parseWallClock(dateStr, timeStr, tzOffsetRaw, "end-of-day");
+}
+
+/** Keep user text from breaking email headers. */
+function singleLine(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").slice(0, 200);
+}
+
+function validationError(
+  parsed: { error: { flatten: () => { fieldErrors: Record<string, string[] | undefined>; formErrors: string[] } } },
+): ActionState {
+  const flat = parsed.error.flatten();
+  const first =
+    flat.fieldErrors.title?.[0] ??
+    flat.fieldErrors.description?.[0] ??
+    flat.fieldErrors.priority?.[0] ??
+    flat.fieldErrors.status?.[0] ??
+    flat.formErrors[0] ??
+    "Please check the form.";
+  return { error: first, fieldErrors: flat.fieldErrors };
 }
 
 async function getEmailRecipients(subjectId: string, excludeUserId?: string) {
@@ -24,25 +47,28 @@ async function getEmailRecipients(subjectId: string, excludeUserId?: string) {
     .map((e) => ({ email: e.user.email!, name: e.user.name ?? "there" }));
 }
 
-function notifyRecipients(
+async function notifyRecipients(
   recipients: { email: string; name: string }[],
   taskTitle: string,
   subjectName: string,
   event: string,
-  extra?: string,
+  extraHtml?: string,
 ) {
+  const safeTitle = escapeHtml(taskTitle);
+  const safeSubject = escapeHtml(subjectName);
+  const safeEvent = escapeHtml(event);
   for (const r of recipients) {
-    sendEmail({
+    await sendEmail({
       to: r.email,
-      subject: `CampusOS: ${event} — ${taskTitle}`,
+      subject: `CampusOS: ${singleLine(event)} — ${singleLine(taskTitle)}`,
       html: `
         <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
-          <h2 style="color: #1C1C1E;">${event}</h2>
+          <h2 style="color: #1C1C1E;">${safeEvent}</h2>
           <p style="color: #8E8E93; font-size: 15px;">
-            Hi ${r.name}, <strong>${taskTitle}</strong> in <strong>${subjectName}</strong> was updated.
+            Hi ${escapeHtml(r.name)}, <strong>${safeTitle}</strong> in <strong>${safeSubject}</strong> was updated.
           </p>
-          ${extra ? `<div style="background: #F8F8FA; border-radius: 8px; padding: 16px; margin: 16px 0;">
-            <p style="margin: 0; font-size: 14px; color: #8E8E93;">${extra}</p>
+          ${extraHtml ? `<div style="background: #F8F8FA; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #8E8E93;">${extraHtml}</p>
           </div>` : ""}
           <p style="color: #8E8E93; font-size: 13px; margin-top: 24px;">
             This is an automated message from CampusOS.
@@ -53,6 +79,19 @@ function notifyRecipients(
   }
 }
 
+function revalidateTaskSurfaces(taskId: string, ...subjectIds: (string | null | undefined)[]) {
+  revalidatePath("/tasks");
+  revalidatePath("/");
+  revalidatePath("/progress");
+  revalidatePath(`/tasks/${taskId}`);
+  for (const sid of subjectIds) {
+    if (sid) {
+      revalidatePath("/subjects");
+      revalidatePath(`/subjects/${sid}`);
+    }
+  }
+}
+
 export async function createTaskAction(
   _prev: ActionState,
   formData: FormData,
@@ -60,45 +99,55 @@ export async function createTaskAction(
   const user = await requireUser();
   if (!user) return { error: "Session expired. Please sign in again." };
 
-  const title = String(formData.get("title") ?? "").trim().toUpperCase();
-  const description = String(formData.get("description") ?? "").trim().toUpperCase();
-  const subjectId = String(formData.get("subjectId") ?? "").trim();
-  const priority = String(formData.get("priority") ?? "MEDIUM");
-  const deadlineDate = formData.get("deadlineDate");
-  const deadlineTime = formData.get("deadlineTime");
+  const parsed = taskSchema.safeParse({
+    title: String(formData.get("title") ?? "").trim().toUpperCase(),
+    description: String(formData.get("description") ?? "").trim().toUpperCase(),
+    subjectId: String(formData.get("subjectId") ?? "").trim(),
+    status: "NOT_STARTED",
+    priority: String(formData.get("priority") ?? "MEDIUM"),
+    deadline: "",
+  });
+  if (!parsed.success) return validationError(parsed);
 
-  if (!title) return { error: "Title is required." };
+  const { title, description, subjectId, priority } = parsed.data;
   if (!subjectId) return { error: "Subject is required." };
 
-  if (subjectId) {
-    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-    if (!subject) return { error: "Invalid subject." };
+  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  if (!subject) return { error: "Invalid subject." };
+  if (!(await userCanUseSubject(user.id, subject))) {
+    return { error: "You are not enrolled in that subject." };
   }
 
-  await prisma.task.create({
+  const deadline = parseDeadline(
+    formData.get("deadlineDate"),
+    formData.get("deadlineTime"),
+    formData.get("tzOffset"),
+  );
+
+  const task = await prisma.task.create({
     data: {
       title,
       description: description || null,
-      subjectId: subjectId || null,
+      subjectId,
       status: "NOT_STARTED",
-      priority: priority as "LOW" | "MEDIUM" | "HIGH",
-      deadline: parseDeadline(deadlineDate, deadlineTime),
+      priority,
+      deadline,
       userId: user.id,
     },
   });
 
-  if (subjectId) {
-    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-    const deadline = parseDeadline(deadlineDate, deadlineTime);
-    const deadlineStr = deadline ? ` Due: ${deadline.toLocaleDateString()}` : "";
-    const recipients = await getEmailRecipients(subjectId, user.id);
-    notifyRecipients(recipients, title, subject?.name ?? "a subject", "New task assigned",
-      `Priority: ${priority}${deadlineStr}${description ? `<br/>${description}` : ""}`);
-  }
+  const deadlineStr = deadline
+    ? ` Due: ${escapeHtml(deadline.toLocaleDateString())}`
+    : "";
+  await notifyRecipients(
+    await getEmailRecipients(subjectId, user.id),
+    title,
+    subject.name,
+    "New task assigned",
+    `Priority: ${escapeHtml(priority)}${deadlineStr}${description ? `<br/>${escapeHtml(description)}` : ""}`,
+  );
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
-  revalidatePath("/subjects");
+  revalidateTaskSurfaces(task.id, subjectId);
   return { ok: true };
 }
 
@@ -109,27 +158,50 @@ export async function updateTaskAction(
 ): Promise<ActionState> {
   const user = await requireUser();
   if (!user) return { error: "Session expired. Please sign in again." };
+  if (typeof id !== "string" || !id) return { error: "Invalid task." };
+
   const existing = await prisma.task.findUnique({ where: { id } });
   if (!existing) return { error: "Task not found." };
+  if (existing.userId !== user.id) {
+    return { error: "You can only edit tasks you created." };
+  }
 
-  const title = String(formData.get("title") ?? "").trim().toUpperCase();
-  const description = String(formData.get("description") ?? "").trim().toUpperCase();
-  const subjectId = String(formData.get("subjectId") ?? "").trim();
-  const status = String(formData.get("status") ?? existing.status);
-  const priority = String(formData.get("priority") ?? existing.priority);
-  const deadlineDate = formData.get("deadlineDate");
-  const deadlineTime = formData.get("deadlineTime");
+  const parsed = taskSchema.safeParse({
+    title: String(formData.get("title") ?? "").trim().toUpperCase(),
+    description: String(formData.get("description") ?? "").trim().toUpperCase(),
+    subjectId: String(formData.get("subjectId") ?? "").trim(),
+    status: String(formData.get("status") ?? existing.status),
+    priority: String(formData.get("priority") ?? existing.priority),
+    deadline: "",
+  });
+  if (!parsed.success) return validationError(parsed);
 
-  if (!title) return { error: "Title is required." };
+  const { title, description, subjectId, status, priority } = parsed.data;
+  if (!subjectId) return { error: "Subject is required." };
+
+  if (subjectId !== existing.subjectId) {
+    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+    if (!subject) return { error: "Invalid subject." };
+    if (!(await userCanUseSubject(user.id, subject))) {
+      return { error: "You are not enrolled in that subject." };
+    }
+  }
+
+  const newDeadline = parseDeadline(
+    formData.get("deadlineDate"),
+    formData.get("deadlineTime"),
+    formData.get("tzOffset"),
+  );
 
   const changes: string[] = [];
-  if (title !== existing.title) changes.push(`Title changed to "${title}"`);
+  if (title !== existing.title) changes.push(`Title changed to "${escapeHtml(title)}"`);
   if (description !== (existing.description ?? "")) changes.push("Description updated");
-  if (priority !== existing.priority) changes.push(`Priority changed to ${priority}`);
-  if (status !== existing.status) changes.push(`Status changed to ${status.replace(/_/g, " ").toLowerCase()}`);
-  const newDeadline = parseDeadline(deadlineDate, deadlineTime);
+  if (priority !== existing.priority) changes.push(`Priority changed to ${escapeHtml(priority)}`);
+  if (status !== existing.status) {
+    changes.push(`Status changed to ${escapeHtml(status.replace(/_/g, " ").toLowerCase())}`);
+  }
   if (newDeadline?.getTime() !== existing.deadline?.getTime()) {
-    changes.push(`Deadline changed to ${newDeadline ? newDeadline.toLocaleDateString() : "none"}`);
+    changes.push(`Deadline changed to ${newDeadline ? escapeHtml(newDeadline.toLocaleDateString()) : "none"}`);
   }
 
   await prisma.task.update({
@@ -137,98 +209,130 @@ export async function updateTaskAction(
     data: {
       title,
       description: description || null,
-      subjectId: subjectId || null,
-      status: status as "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "COMPLETED",
-      priority: priority as "LOW" | "MEDIUM" | "HIGH",
+      subjectId,
+      status,
+      priority,
       deadline: newDeadline,
-      completedAt: status === "COMPLETED" ? new Date() : existing.completedAt ?? null,
+      // completedAt only meaningful while status is COMPLETED; set it when
+      // the task *becomes* completed, keep it while staying completed, and
+      // clear it whenever status moves away from COMPLETED.
+      completedAt:
+        status === "COMPLETED"
+          ? existing.status === "COMPLETED"
+            ? existing.completedAt ?? new Date()
+            : new Date()
+          : null,
     },
   });
 
   if (changes.length > 0) {
-    const subId = subjectId || existing.subjectId || "";
-    const subject = await prisma.subject.findUnique({ where: { id: subId } });
-    const recipients = await getEmailRecipients(subId, user.id);
-    notifyRecipients(recipients, title, subject?.name ?? "a subject", "Task updated", changes.join("<br/>"));
+    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+    await notifyRecipients(
+      await getEmailRecipients(subjectId, user.id),
+      title,
+      subject?.name ?? "a subject",
+      "Task updated",
+      changes.join("<br/>"),
+    );
   }
 
-  revalidatePath("/tasks");
-  revalidatePath(`/tasks/${id}`);
-  revalidatePath("/");
+  revalidateTaskSurfaces(id, existing.subjectId, subjectId);
   return { ok: true };
 }
 
-export async function setTaskStatusAction(
-  id: string,
-  status: string,
-): Promise<void> {
+/** Whether a user may interact with (view/complete/comment) a task. */
+async function canViewTask(
+  user: { id: string },
+  task: { userId: string; subjectId: string | null; groupId: string | null },
+): Promise<boolean> {
+  if (task.userId === user.id) return true;
+  if (task.groupId) {
+    const membership = await prisma.groupMember.findUnique({
+      where: { groupId_userId: { groupId: task.groupId, userId: user.id } },
+      select: { id: true },
+    });
+    if (membership) return true;
+  }
+  if (task.subjectId) {
+    const enrollment = await prisma.userEnrollment.findUnique({
+      where: { userId_subjectId: { userId: user.id, subjectId: task.subjectId } },
+      select: { id: true },
+    });
+    if (enrollment) return true;
+    const subject = await prisma.subject.findUnique({
+      where: { id: task.subjectId },
+      select: { userId: true },
+    });
+    if (subject && subject.userId === user.id) return true;
+  }
+  return false;
+}
+
+export async function toggleTaskCompleteAction(id: string): Promise<ActionState> {
   const user = await requireUser();
-  if (!user) return;
+  if (!user) return { error: "Session expired. Please sign in again." };
+  if (typeof id !== "string" || !id) return { error: "Invalid task." };
+
   const existing = await prisma.task.findUnique({ where: { id } });
-  if (!existing) return;
-
-  const nowCompleted = status === "COMPLETED";
-
-  await prisma.taskCompletion.upsert({
-    where: { taskId_userId: { taskId: id, userId: user.id } },
-    update: { completed: nowCompleted, completedAt: nowCompleted ? new Date() : null },
-    create: { taskId: id, userId: user.id, completed: nowCompleted, completedAt: nowCompleted ? new Date() : null },
-  });
-
-  if (nowCompleted) {
-    const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-    const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
-    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task completed",
-      `Marked as completed by ${user.name ?? "a classmate"}.`);
+  if (!existing) return { error: "Task not found." };
+  if (!(await canViewTask(user, existing))) {
+    return { error: "You cannot interact with this task." };
   }
 
-  revalidatePath("/tasks");
-  revalidatePath("/");
-  revalidatePath(`/tasks/${id}`);
-}
-
-export async function toggleTaskCompleteAction(id: string): Promise<void> {
-  const user = await requireUser();
-  if (!user) return;
-  const existing = await prisma.task.findUnique({ where: { id } });
-  if (!existing) return;
-
-  const completion = await prisma.taskCompletion.findUnique({
-    where: { taskId_userId: { taskId: id, userId: user.id } },
+  // Atomic read+write so rapid double-toggles can't both read the same state.
+  const now = new Date();
+  const wasCompleted = await prisma.$transaction(async (tx) => {
+    const completion = await tx.taskCompletion.findUnique({
+      where: { taskId_userId: { taskId: id, userId: user.id } },
+    });
+    const previous = completion?.completed ?? false;
+    await tx.taskCompletion.upsert({
+      where: { taskId_userId: { taskId: id, userId: user.id } },
+      update: { completed: !previous, completedAt: !previous ? now : null },
+      create: { taskId: id, userId: user.id, completed: !previous, completedAt: !previous ? now : null },
+    });
+    return previous;
   });
-  const wasCompleted = completion?.completed ?? false;
-
-  await prisma.taskCompletion.upsert({
-    where: { taskId_userId: { taskId: id, userId: user.id } },
-    update: { completed: !wasCompleted, completedAt: !wasCompleted ? new Date() : null },
-    create: { taskId: id, userId: user.id, completed: !wasCompleted, completedAt: !wasCompleted ? new Date() : null },
-  });
-
-  const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId ?? "" } });
-  const recipients = await getEmailRecipients(existing.subjectId ?? "", user.id);
-  notifyRecipients(recipients, existing.title, subject?.name ?? "a subject",
-    wasCompleted ? "Task reopened" : "Task completed",
-    `Marked as ${wasCompleted ? "incomplete" : "completed"} by ${user.name ?? "a classmate"}.`);
-
-  revalidatePath("/tasks");
-  revalidatePath("/");
-  revalidatePath(`/tasks/${id}`);
-}
-
-export async function deleteTaskAction(id: string): Promise<void> {
-  const user = await requireUser();
-  if (!user) return;
-  const existing = await prisma.task.findUnique({ where: { id } });
-  if (!existing) return;
 
   if (existing.subjectId) {
     const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId } });
-    const recipients = await getEmailRecipients(existing.subjectId, user.id);
-    notifyRecipients(recipients, existing.title, subject?.name ?? "a subject", "Task deleted",
-      `Deleted by ${user.name ?? "a classmate"}.`);
+    await notifyRecipients(
+      await getEmailRecipients(existing.subjectId, user.id),
+      existing.title,
+      subject?.name ?? "a subject",
+      wasCompleted ? "Task reopened" : "Task completed",
+      `Marked as ${wasCompleted ? "incomplete" : "completed"} by ${escapeHtml(user.name ?? "a classmate")}.`,
+    );
+  }
+
+  revalidateTaskSurfaces(id, existing.subjectId);
+  return { ok: true };
+}
+
+export async function deleteTaskAction(id: string): Promise<ActionState> {
+  const user = await requireUser();
+  if (!user) return { error: "Session expired. Please sign in again." };
+  if (typeof id !== "string" || !id) return { error: "Invalid task." };
+
+  const existing = await prisma.task.findUnique({ where: { id } });
+  if (!existing) return { error: "Task not found." };
+  if (existing.userId !== user.id) {
+    return { error: "You can only delete tasks you created." };
   }
 
   await prisma.task.delete({ where: { id } });
-  revalidatePath("/tasks");
-  revalidatePath("/");
+
+  if (existing.subjectId) {
+    const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId } });
+    await notifyRecipients(
+      await getEmailRecipients(existing.subjectId, user.id),
+      existing.title,
+      subject?.name ?? "a subject",
+      "Task deleted",
+      `Deleted by ${escapeHtml(user.name ?? "a classmate")}.`,
+    );
+  }
+
+  revalidateTaskSurfaces(id, existing.subjectId);
+  return { ok: true };
 }

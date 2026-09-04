@@ -1,13 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, ChevronLeft, ChevronRight, Trash2, Pencil } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Button } from "@/components/ui/Button";
 import { EventFormModal } from "@/components/calendar/EventFormModal";
 import { cn, formatDeadline } from "@/lib/utils";
 import { EVENT_TYPE } from "@/lib/constants";
+import { deleteEventAction } from "@/features/calendar/actions";
 import type { Subject, Task, CalendarEvent } from "@prisma/client";
 
 type TaskWithSubject = Task & { subject?: Subject | null };
@@ -31,6 +33,59 @@ function sameDay(a: Date, b: Date) {
   );
 }
 
+function DayItemRow({
+  it,
+  onDeleteEvent,
+  onEditEvent,
+  deleting,
+}: {
+  it: Item;
+  onDeleteEvent?: (id: string) => void;
+  onEditEvent?: (id: string) => void;
+  deleting?: boolean;
+}) {
+  const body = (
+    <>
+      <span className="size-2.5 rounded-full" style={{ backgroundColor: it.color }} />
+      <span className="flex-1 truncate font-medium">{it.title}</span>
+      <span className="text-xs text-ink-muted">{formatDeadline(it.date)}</span>
+    </>
+  );
+  return (
+    <div className="card flex items-center gap-3 p-3">
+      {it.href ? (
+        <Link href={it.href} className="flex flex-1 min-w-0 items-center gap-3">
+          {body}
+        </Link>
+      ) : (
+        <div className="flex flex-1 min-w-0 items-center gap-3">{body}</div>
+      )}
+      {it.kind === "event" && onEditEvent && (
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={() => onEditEvent(it.id)}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink-muted hover:bg-ink/10 disabled:opacity-50 dark:bg-ink-inverse/10"
+          aria-label="Edit event"
+        >
+          <Pencil className="size-3.5" />
+        </button>
+      )}
+      {it.kind === "event" && onDeleteEvent && (
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={() => onDeleteEvent(it.id)}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger hover:bg-danger/15 disabled:opacity-50"
+          aria-label="Delete event"
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function CalendarView({
   tasks,
   events,
@@ -44,6 +99,13 @@ export function CalendarView({
   const [cursor, setCursor] = useState(new Date());
   const [selected, setSelected] = useState(new Date());
   const [eventOpen, setEventOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const router = useRouter();
+  const [deleting, startDelete] = useTransition();
+
+  // Compute "today" once per render (was per cell -> inconsistent across
+  // a midnight-spanning render pass).
+  const today = new Date();
 
   const items = useMemo<Item[]>(() => {
     const fromTasks: Item[] = tasks
@@ -68,11 +130,21 @@ export function CalendarView({
 
   const shift = (dir: number) => {
     const n = new Date(cursor);
-    if (view === "month") n.setMonth(n.getMonth() + dir);
-    else if (view === "week") n.setDate(n.getDate() + dir * 7);
-    else n.setDate(n.getDate() + dir);
-    setCursor(n);
-    if (view !== "month") setSelected(n);
+    if (view === "month") {
+      n.setDate(1);
+      n.setMonth(n.getMonth() + dir);
+      setCursor(n);
+      // Keep the selected-day panel consistent with the visible month.
+      setSelected(n);
+    } else if (view === "week") {
+      n.setDate(n.getDate() + dir * 7);
+      setCursor(n);
+      setSelected(n);
+    } else {
+      n.setDate(n.getDate() + dir);
+      setCursor(n);
+      setSelected(n);
+    }
   };
 
   const monthGrid = useMemo(() => {
@@ -88,7 +160,13 @@ export function CalendarView({
     return cells;
   }, [cursor]);
 
-  const selectedItems = items.filter((i) => sameDay(i.date, selected));
+  const selectedItems = useMemo(
+    () =>
+      items
+        .filter((i) => sameDay(i.date, selected))
+        .sort((a, b) => a.date.getTime() - b.date.getTime()),
+    [items, selected],
+  );
 
   const weekDays = useMemo(() => {
     const base = new Date(cursor);
@@ -100,6 +178,41 @@ export function CalendarView({
       return d;
     });
   }, [cursor]);
+
+  const openDay = (d: Date) => {
+    setSelected(d);
+    setCursor(d);
+    setView("day");
+  };
+
+  const onDeleteEvent = (id: string) => {
+    if (!confirm("Delete this event?")) return;
+    startDelete(async () => {
+      const res = await deleteEventAction(id);
+      if (res?.error) alert(res.error);
+      router.refresh();
+    });
+  };
+
+  const openEditEvent = (id: string) => {
+    setEditingId(id);
+    setEventOpen(true);
+  };
+
+  const editingEvent = editingId
+    ? events.find((e) => e.id === editingId) ?? null
+    : null;
+
+  const label =
+    view === "month"
+      ? cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })
+      : view === "week"
+        ? `Week of ${cursor.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
+        : selected.toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+          });
 
   return (
     <div>
@@ -141,9 +254,7 @@ export function CalendarView({
 
       {view === "month" && (
         <div className="card p-3">
-          <p className="mb-2 text-center text-sm font-semibold capitalize">
-            {cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-          </p>
+          <p className="mb-2 text-center text-sm font-semibold capitalize">{label}</p>
           <div className="grid grid-cols-7 gap-1 text-center text-xs text-ink-muted">
             {WEEKDAYS.map((w, i) => (
               <div key={i} className="py-1 font-medium">
@@ -155,12 +266,13 @@ export function CalendarView({
             {monthGrid.map((d, i) => {
               if (!d) return <div key={i} />;
               const dayItems = items.filter((it) => sameDay(it.date, d));
-              const isToday = sameDay(d, new Date());
+              const isToday = sameDay(d, today);
               const isSel = sameDay(d, selected);
               return (
                 <button
                   key={i}
                   onClick={() => setSelected(d)}
+                  onDoubleClick={() => openDay(d)}
                   className={cn(
                     "flex min-h-[52px] flex-col rounded-lg p-1 text-left transition",
                     isSel ? "bg-primary/10" : "hover:bg-ink/5 dark:hover:bg-ink-inverse/10",
@@ -202,9 +314,19 @@ export function CalendarView({
         <div className="grid grid-cols-7 gap-1.5">
           {weekDays.map((d) => {
             const dayItems = items.filter((it) => sameDay(it.date, d));
-            const isToday = sameDay(d, new Date());
+            const isToday = sameDay(d, today);
+            const isSel = sameDay(d, selected);
             return (
-              <div key={d.toISOString()} className="card flex flex-col p-1.5">
+              <button
+                key={d.toDateString()}
+                type="button"
+                onClick={() => setSelected(d)}
+                onDoubleClick={() => openDay(d)}
+                className={cn(
+                  "card flex flex-col p-1.5 text-left transition",
+                  isSel && "ring-2 ring-primary",
+                )}
+              >
                 <p className={cn("text-center text-xs", isToday ? "font-bold text-primary" : "text-ink-muted")}>
                   {d.toLocaleDateString(undefined, { weekday: "short" })}
                 </p>
@@ -223,42 +345,57 @@ export function CalendarView({
                     </span>
                   ))}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       )}
 
-      <div className="mt-5">
-        <h2 className="mb-2 text-sm font-semibold">
-          {selected.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
-        </h2>
-        {selectedItems.length ? (
-          <div className="space-y-2">
-            {selectedItems
-              .sort((a, b) => a.date.getTime() - b.date.getTime())
-              .map((it) =>
-                it.href ? (
-                  <Link key={it.id} href={it.href} className="card flex items-center gap-3 p-3">
-                    <span className="size-2.5 rounded-full" style={{ backgroundColor: it.color }} />
-                    <span className="flex-1 truncate font-medium">{it.title}</span>
-                    <span className="text-xs text-ink-muted">{formatDeadline(it.date)}</span>
-                  </Link>
-                ) : (
-                  <div key={it.id} className="card flex items-center gap-3 p-3">
-                    <span className="size-2.5 rounded-full" style={{ backgroundColor: it.color }} />
-                    <span className="flex-1 truncate font-medium">{it.title}</span>
-                    <span className="text-xs text-ink-muted">{formatDeadline(it.date)}</span>
-                  </div>
-                ),
-              )}
-          </div>
-        ) : (
-          <p className="text-sm text-ink-muted">Nothing scheduled.</p>
-        )}
-      </div>
+      {view === "day" && (
+        <div className="card p-4">
+          <p className="mb-3 text-sm font-semibold">{label}</p>
+          {selectedItems.length ? (
+            <div className="space-y-2">
+              {selectedItems.map((it) => (
+                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-ink-muted">Nothing scheduled.</p>
+          )}
+        </div>
+      )}
 
-      <EventFormModal open={eventOpen} onClose={() => setEventOpen(false)} subjects={subjects} defaultStart={selected} />
+      {view !== "day" && (
+        <div className="mt-5">
+          <h2 className="mb-2 text-sm font-semibold">
+            {selected.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+          </h2>
+          {selectedItems.length ? (
+            <div className="space-y-2">
+              {selectedItems.map((it) => (
+                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-ink-muted">Nothing scheduled.</p>
+          )}
+        </div>
+      )}
+
+      {eventOpen && (
+        <EventFormModal
+          key={editingEvent?.id ?? "new"}
+          open
+          onClose={() => {
+            setEventOpen(false);
+            setEditingId(null);
+          }}
+          subjects={subjects}
+          defaultStart={selected}
+          event={editingEvent ?? undefined}
+        />
+      )}
     </div>
   );
 }

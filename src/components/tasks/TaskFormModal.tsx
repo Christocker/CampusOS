@@ -2,26 +2,15 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
+import { LocalDateInput, LocalTimeInput } from "@/components/ui/LocalDateInput";
 import { Button } from "@/components/ui/Button";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createTaskAction, updateTaskAction } from "@/features/tasks/actions";
 import type { ActionState } from "@/features/shared/validations";
 import type { Subject, Task } from "@prisma/client";
 
 const initial: ActionState = {};
-
-function toLocalDate(d?: Date | null) {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function toLocalTime(d?: Date | null) {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function TaskFormModal({
   open,
@@ -42,6 +31,15 @@ export function TaskFormModal({
     initial,
   );
   const router = useRouter();
+  const tzRef = useRef<HTMLInputElement>(null);
+
+  // Capture the browser's UTC offset so the server can convert picked
+  // wall-clock dates into exact instants regardless of server timezone.
+  useEffect(() => {
+    if (open && tzRef.current) {
+      tzRef.current.value = String(new Date().getTimezoneOffset());
+    }
+  }, [open]);
 
   useEffect(() => {
     if (state.ok) {
@@ -50,6 +48,10 @@ export function TaskFormModal({
     }
   }, [state.ok, onClose, router]);
 
+  const refreshTz = () => {
+    if (tzRef.current) tzRef.current.value = String(new Date().getTimezoneOffset());
+  };
+
   return (
     <Modal
       open={open}
@@ -57,13 +59,14 @@ export function TaskFormModal({
       title={isEdit ? "Edit task" : "New task"}
       description={defaultGroupId ? "Shared with your group" : undefined}
     >
-      <form action={formAction} className="space-y-4">
+      <form action={formAction} onSubmit={refreshTz} className="space-y-4">
+        <input type="hidden" name="tzOffset" ref={tzRef} defaultValue="" />
         {defaultGroupId && (
           <input type="hidden" name="groupId" value={defaultGroupId} />
         )}
         <div>
           <Label htmlFor="title">Title</Label>
-          <Input id="title" name="title" defaultValue={task?.title} placeholder="e.g. LAB REPORT" autoCapitalize="characters" />
+          <Input id="title" name="title" defaultValue={task?.title} placeholder="e.g. LAB REPORT" autoCapitalize="characters" maxLength={120} required />
           {state.fieldErrors?.title && (
             <p className="mt-1 text-xs text-danger">{state.fieldErrors.title[0]}</p>
           )}
@@ -71,7 +74,10 @@ export function TaskFormModal({
 
         <div>
           <Label htmlFor="description">Description</Label>
-          <Textarea id="description" name="description" defaultValue={task?.description ?? ""} placeholder="OPTIONAL DETAILS" autoCapitalize="characters" />
+          <Textarea id="description" name="description" defaultValue={task?.description ?? ""} placeholder="OPTIONAL DETAILS" autoCapitalize="characters" maxLength={1000} />
+          {state.fieldErrors?.description && (
+            <p className="mt-1 text-xs text-danger">{state.fieldErrors.description[0]}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -81,10 +87,13 @@ export function TaskFormModal({
               <option value="">Select a subject</option>
               {subjects.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {(s as Subject & { classCode?: string }).classCode ? `[${(s as Subject & { classCode?: string }).classCode}] ` : ""}{s.name}
+                  {s.classCode ? `[${s.classCode}] ` : ""}{s.name}
                 </option>
               ))}
             </Select>
+            {state.fieldErrors?.subjectId && (
+              <p className="mt-1 text-xs text-danger">{state.fieldErrors.subjectId[0]}</p>
+            )}
           </div>
           <div>
             <Label htmlFor="priority">Priority</Label>
@@ -93,6 +102,9 @@ export function TaskFormModal({
               <option value="MEDIUM">Medium</option>
               <option value="HIGH">High</option>
             </Select>
+            {state.fieldErrors?.priority && (
+              <p className="mt-1 text-xs text-danger">{state.fieldErrors.priority[0]}</p>
+            )}
           </div>
         </div>
 
@@ -105,23 +117,24 @@ export function TaskFormModal({
               <option value="SUBMITTED">Submitted</option>
               <option value="COMPLETED">Completed</option>
             </Select>
+            {state.fieldErrors?.status && (
+              <p className="mt-1 text-xs text-danger">{state.fieldErrors.status[0]}</p>
+            )}
           </div>
         )}
 
         <div>
           <Label>Deadline</Label>
           <div className="grid grid-cols-2 gap-2">
-            <Input
+            <LocalDateInput
               id="deadlineDate"
-              type="date"
               name="deadlineDate"
-              defaultValue={task ? toLocalDate(task.deadline) : ""}
+              value={task?.deadline ?? null}
             />
-            <Input
+            <LocalTimeInput
               id="deadlineTime"
-              type="time"
               name="deadlineTime"
-              defaultValue={task ? toLocalTime(task.deadline) : ""}
+              value={task?.deadline ?? null}
               placeholder="Optional"
             />
           </div>

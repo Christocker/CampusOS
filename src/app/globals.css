@@ -42,6 +42,18 @@
     letter-spacing: 0.02em;
   }
 
+  /* Case-sensitive / native picker inputs must never render uppercased. */
+  .input-base[type="email"],
+  .input-base[type="password"],
+  .input-base[type="date"],
+  .input-base[type="time"],
+  .input-base[type="datetime-local"],
+  .input-base[type="number"],
+  .input-base[type="tel"] {
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -62,6 +74,20 @@
   @apply relative overflow-hidden bg-border-light/60 dark:bg-border-dark/60;
 }
 .skeleton::after {
-  @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer;
+  @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent to-transparent animate-shimmer;
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    rgba(28, 28, 30, 0.08),
+    transparent
+  );
   content: "";
+}
+.dark .skeleton::after {
+  background-image: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
 }

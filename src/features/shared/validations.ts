@@ -3,13 +3,14 @@ import { SUBJECT_COLORS } from "@/lib/constants";
 
 export type ActionState = {
   error?: string;
-  fieldErrors?: Record<string, string[]>;
+  fieldErrors?: Record<string, string[] | undefined>;
   ok?: boolean;
   code?: string;
 };
 
 export const subjectSchema = z.object({
   name: z.string().min(1, "Name is required").max(60),
+  classCode: z.string().max(20, "Class ID is too long").optional().or(z.literal("")),
   professor: z.string().max(80).optional().or(z.literal("")),
   semester: z.string().max(40).optional().or(z.literal("")),
   color: z

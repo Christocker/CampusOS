@@ -42,7 +42,7 @@ export function SubjectFormModal({
       <form action={formAction} className="space-y-4">
         <div>
           <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" defaultValue={subject?.name} placeholder="e.g. DIGITAL ELECTRONICS" autoCapitalize="characters" />
+          <Input id="name" name="name" defaultValue={subject?.name} placeholder="e.g. DIGITAL ELECTRONICS" autoCapitalize="characters" maxLength={60} required />
           {state.fieldErrors?.name && (
             <p className="mt-1 text-xs text-danger">{state.fieldErrors.name[0]}</p>
           )}
@@ -50,13 +50,13 @@ export function SubjectFormModal({
 
         <div>
           <Label htmlFor="classCode">Class ID</Label>
-          <Input id="classCode" name="classCode" defaultValue={(subject as Subject & { classCode?: string })?.classCode ?? ""} placeholder="e.g. 1111" autoCapitalize="characters" inputMode="numeric" />
+          <Input id="classCode" name="classCode" defaultValue={subject?.classCode ?? ""} placeholder="e.g. 1111" autoCapitalize="characters" inputMode="numeric" maxLength={20} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="professor">Professor</Label>
-            <Input id="professor" name="professor" defaultValue={subject?.professor ?? ""} placeholder="DR. SMITH" autoCapitalize="characters" />
+            <Input id="professor" name="professor" defaultValue={subject?.professor ?? ""} placeholder="DR. SMITH" autoCapitalize="characters" maxLength={80} />
           </div>
           <div>
             <Label htmlFor="semester">Semester</Label>
@@ -101,7 +101,7 @@ export function SubjectFormModal({
 
         <div>
           <Label htmlFor="description">Description</Label>
-          <Textarea id="description" name="description" defaultValue={subject?.description ?? ""} placeholder="OPTIONAL" autoCapitalize="characters" />
+          <Textarea id="description" name="description" defaultValue={subject?.description ?? ""} placeholder="OPTIONAL" autoCapitalize="characters" maxLength={500} />
         </div>
 
         {state.error && (

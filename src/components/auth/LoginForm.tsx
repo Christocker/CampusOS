@@ -99,6 +99,9 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
         </form>
       ) : (
         <form action={action} className="space-y-4">
+          {callbackUrl && (
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
+          )}
           <div>
             <Label htmlFor="code">Access code</Label>
             <Input
@@ -106,6 +109,8 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
               name="code"
               placeholder="e.g. A1B2C3D4"
               autoCapitalize="characters"
+              maxLength={32}
+              required
             />
             <p className="mt-1 text-xs text-ink-muted">
               Get this code from your admin.

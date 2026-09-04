@@ -3,19 +3,13 @@
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createGroupTaskAction } from "@/features/groups/actions";
 import type { ActionState } from "@/features/shared/validations";
 import type { Subject } from "@prisma/client";
 
 const initial: ActionState = {};
-
-function toLocalInput(d?: Date | null) {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function GroupTaskFormModal({
   open,
@@ -33,6 +27,13 @@ export function GroupTaskFormModal({
     initial,
   );
   const router = useRouter();
+  const tzRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open && tzRef.current) {
+      tzRef.current.value = String(new Date().getTimezoneOffset());
+    }
+  }, [open]);
 
   useEffect(() => {
     if (state.ok) {
@@ -44,16 +45,17 @@ export function GroupTaskFormModal({
   return (
     <Modal open={open} onClose={onClose} title="New shared task">
       <form action={formAction} className="space-y-4">
+        <input type="hidden" name="tzOffset" ref={tzRef} defaultValue="" />
         <div>
           <Label htmlFor="gt-title">Title</Label>
-          <Input id="gt-title" name="title" placeholder="e.g. Experiment 3" autoCapitalize="characters" />
+          <Input id="gt-title" name="title" placeholder="e.g. Experiment 3" autoCapitalize="characters" maxLength={120} required />
           {state.fieldErrors?.title && (
             <p className="mt-1 text-xs text-danger">{state.fieldErrors.title[0]}</p>
           )}
         </div>
         <div>
           <Label htmlFor="gt-desc">Description</Label>
-          <Textarea id="gt-desc" name="description" placeholder="Optional" autoCapitalize="characters" />
+          <Textarea id="gt-desc" name="description" placeholder="Optional" autoCapitalize="characters" maxLength={1000} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -74,9 +76,22 @@ export function GroupTaskFormModal({
             </Select>
           </div>
         </div>
-        <div>
-          <Label htmlFor="gt-deadline">Deadline</Label>
-          <Input id="gt-deadline" type="datetime-local" name="deadline" />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="gt-subject">Subject</Label>
+            <Select id="gt-subject" name="subjectId" defaultValue="">
+              <option value="">None</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="gt-deadline">Deadline</Label>
+            <Input id="gt-deadline" type="datetime-local" name="deadline" />
+          </div>
         </div>
 
         {state.error && (

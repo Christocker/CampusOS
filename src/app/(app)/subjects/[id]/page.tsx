@@ -16,14 +16,33 @@ export default async function SubjectDetailPage({
   const subject = await prisma.subject.findUnique({ where: { id } });
   if (!subject) return notFound();
 
-  const [tasks, subjects] = await Promise.all([
+  // The subject catalog is intentionally shared, but only the owner may
+  // edit/delete; tasks carry the acting user's completion state.
+  const [tasks, completions] = await Promise.all([
     prisma.task.findMany({
       where: { subjectId: id },
       include: { subject: true, user: { select: { name: true } } },
       orderBy: { deadline: "asc" },
     }),
-    prisma.subject.findMany({ orderBy: { name: "asc" } }),
+    prisma.taskCompletion.findMany({
+      where: { userId: user.id },
+      select: { taskId: true, completed: true },
+    }),
   ]);
 
-  return <SubjectDetail subject={subject} tasks={tasks} subjects={subjects} />;
+  const completionMap = new Map(completions.map((c) => [c.taskId, c.completed]));
+  const enrolled = await prisma.userEnrollment.findUnique({
+    where: { userId_subjectId: { userId: user.id, subjectId: id } },
+    select: { id: true },
+  });
+
+  return (
+    <SubjectDetail
+      subject={subject}
+      tasks={tasks}
+      completionMap={completionMap}
+      isOwner={subject.userId === user.id}
+      enrolled={Boolean(enrolled) || subject.userId === user.id}
+    />
+  );
 }

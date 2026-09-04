@@ -2,40 +2,48 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { Input, Textarea, Select, Label } from "@/components/ui/Input";
+import { LocalDateInput, LocalTimeInput } from "@/components/ui/LocalDateInput";
 import { Button } from "@/components/ui/Button";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createEventAction } from "@/features/calendar/actions";
+import { createEventAction, updateEventAction } from "@/features/calendar/actions";
 import type { ActionState } from "@/features/shared/validations";
-import type { Subject } from "@prisma/client";
+import type { Subject, CalendarEvent } from "@prisma/client";
 
 const initial: ActionState = {};
-
-function toLocalDate(d?: Date | null) {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function toLocalTime(d?: Date | null) {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function EventFormModal({
   open,
   onClose,
   subjects,
   defaultStart,
+  event,
 }: {
   open: boolean;
   onClose: () => void;
   subjects: Subject[];
   defaultStart?: Date;
+  event?: CalendarEvent;
 }) {
-  const [state, formAction, pending] = useActionState(createEventAction, initial);
+  const isEdit = !!event;
+  const [state, formAction, pending] = useActionState(
+    isEdit ? updateEventAction.bind(null, event!.id) : createEventAction,
+    initial,
+  );
   const router = useRouter();
+  const [allDay, setAllDay] = useState(event?.allDay ?? false);
+  const tzRef = useRef<HTMLInputElement>(null);
+
+  const refreshTz = () => {
+    if (tzRef.current) tzRef.current.value = String(new Date().getTimezoneOffset());
+  };
+
+  useEffect(() => {
+    if (open && tzRef.current) {
+      refreshTz();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (state.ok) {
@@ -44,14 +52,16 @@ export function EventFormModal({
     }
   }, [state.ok, onClose, router]);
 
-  const ref = defaultStart ?? new Date();
+  const startValue = event ? new Date(event.start) : defaultStart ?? null;
+  const endValue = event?.end ? new Date(event.end) : null;
 
   return (
-    <Modal open={open} onClose={onClose} title="New event">
-      <form action={formAction} className="space-y-4">
+    <Modal open={open} onClose={onClose} title={isEdit ? "Edit event" : "New event"}>
+      <form action={formAction} onSubmit={refreshTz} className="space-y-4">
+        <input type="hidden" name="tzOffset" ref={tzRef} defaultValue="" />
         <div>
           <Label htmlFor="title">Title</Label>
-          <Input id="title" name="title" placeholder="e.g. MIDTERM EXAM" autoCapitalize="characters" />
+          <Input id="title" name="title" defaultValue={event?.title} placeholder="e.g. MIDTERM EXAM" autoCapitalize="characters" maxLength={120} required />
           {state.fieldErrors?.title && (
             <p className="mt-1 text-xs text-danger">{state.fieldErrors.title[0]}</p>
           )}
@@ -59,7 +69,7 @@ export function EventFormModal({
 
         <div>
           <Label htmlFor="type">Type</Label>
-          <Select id="type" name="type" defaultValue="EVENT">
+          <Select id="type" name="type" defaultValue={event?.type ?? "EVENT"}>
             <option value="EVENT">Event</option>
             <option value="TASK">Task</option>
             <option value="DEADLINE">Deadline</option>
@@ -67,36 +77,43 @@ export function EventFormModal({
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Start</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input id="startDate" type="date" name="startDate" defaultValue={toLocalDate(ref)} />
-              <Input id="startTime" type="time" name="startTime" defaultValue={toLocalTime(ref)} />
-            </div>
-          </div>
-          <div>
-            <Label>End</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input id="endDate" type="date" name="endDate" defaultValue="" />
-              <Input id="endTime" type="time" name="endTime" defaultValue="" />
-            </div>
-          </div>
-        </div>
-
         <div className="flex items-center gap-2">
           <input
             id="allDay"
             name="allDay"
             type="checkbox"
+            checked={allDay}
+            onChange={(e) => setAllDay(e.target.checked)}
             className="size-4 rounded border-border-light accent-primary"
           />
           <Label htmlFor="allDay" className="mb-0">All day</Label>
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>Start</Label>
+            <div className={`grid grid-cols-2 gap-2 ${allDay ? "opacity-50" : ""}`}>
+              <LocalDateInput id="startDate" name="startDate" value={startValue} required />
+              {/* Hidden (not unmounted) when all-day, so typed values survive toggling. */}
+              <div className={allDay ? "hidden" : "contents"}>
+                <LocalTimeInput id="startTime" name="startTime" value={startValue} />
+              </div>
+            </div>
+          </div>
+          <div>
+            <Label>End</Label>
+            <div className={`grid grid-cols-2 gap-2 ${allDay ? "opacity-50" : ""}`}>
+              <LocalDateInput id="endDate" name="endDate" value={endValue} />
+              <div className={allDay ? "hidden" : "contents"}>
+                <LocalTimeInput id="endTime" name="endTime" value={endValue} />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div>
           <Label htmlFor="subject">Subject</Label>
-          <Select id="subject" name="subjectId" defaultValue="">
+          <Select id="subject" name="subjectId" defaultValue={event?.subjectId ?? ""}>
             <option value="">None</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
@@ -108,7 +125,7 @@ export function EventFormModal({
 
         <div>
           <Label htmlFor="description">Description</Label>
-          <Textarea id="description" name="description" placeholder="OPTIONAL" autoCapitalize="characters" />
+          <Textarea id="description" name="description" defaultValue={event?.description ?? ""} placeholder="OPTIONAL" autoCapitalize="characters" maxLength={1000} />
         </div>
 
         {state.error && (
@@ -120,7 +137,7 @@ export function EventFormModal({
             Cancel
           </Button>
           <Button type="submit" loading={pending}>
-            Create event
+            {isEdit ? "Save changes" : "Create event"}
           </Button>
         </div>
       </form>

@@ -21,11 +21,15 @@ export default async function AdminPage() {
         include: { user: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
+      // Never send passwordHash to the client.
+      prisma.user.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { id: true, name: true, email: true, role: true },
+      }),
     ]);
 
-  const usedCodes = codes.length;
-  const unusedCodes = codes.length;
+  const usedCodes = codes.filter((c) => c.userId !== null).length;
+  const unusedCodes = codes.length - usedCodes;
 
   const stats = [
     { label: "Users", value: totalUsers, icon: Users },
@@ -55,14 +59,16 @@ export default async function AdminPage() {
       <section>
         <h2 className="mb-3 text-base font-semibold">Access codes</h2>
         <p className="mb-3 text-sm text-ink-muted">
-          Share a code with a classmate so they can sign in. Codes can be used unlimited times.
+          Share a code with a classmate so they can sign in. Codes can be used
+          unlimited times until deleted or expired ({usedCodes} in use,{" "}
+          {unusedCodes} unused).
         </p>
         <InviteManager codes={codes} />
       </section>
 
       <section>
         <h2 className="mb-3 text-base font-semibold">Users ({users.length})</h2>
-        <UserManager users={users} />
+        <UserManager users={users} currentUserId={user.id} />
       </section>
     </div>
   );

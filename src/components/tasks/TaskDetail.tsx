@@ -39,6 +39,7 @@ export function TaskDetail({
   const [cState, cAction, cPending] = useActionState(addCommentAction, commentState);
 
   const completed = completionMap.get(currentUserId) ?? false;
+  const isOwner = task.userId === currentUserId;
 
   useEffect(() => {
     if (prevPending.current && !pending) {
@@ -64,31 +65,39 @@ export function TaskDetail({
           <ArrowLeft className="size-5" />
         </Link>
         <div className="flex gap-1">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="flex size-9 items-center justify-center rounded-full bg-ink/5 text-ink dark:bg-ink-inverse/10 dark:text-ink-inverse"
-            aria-label="Edit"
-          >
-            <Pencil className="size-4" />
-          </button>
-          <button
-            disabled={pending}
-            onClick={() => {
-              if (!confirm("Delete this task?")) return;
-              start(async () => {
-                await deleteTaskAction(task.id);
-                router.push("/tasks");
-              });
-            }}
-            className="flex size-9 items-center justify-center rounded-full bg-danger/10 text-danger"
-            aria-label="Delete"
-          >
-            {pending ? (
-              <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-          </button>
+          {isOwner && (
+            <button
+              onClick={() => setEditOpen(true)}
+              className="flex size-9 items-center justify-center rounded-full bg-ink/5 text-ink dark:bg-ink-inverse/10 dark:text-ink-inverse"
+              aria-label="Edit"
+            >
+              <Pencil className="size-4" />
+            </button>
+          )}
+          {isOwner && (
+            <button
+              disabled={pending}
+              onClick={() => {
+                if (!confirm("Delete this task?")) return;
+                start(async () => {
+                  const res = await deleteTaskAction(task.id);
+                  if (res?.error) {
+                    alert(res.error);
+                    return;
+                  }
+                  router.push("/tasks");
+                });
+              }}
+              className="flex size-9 items-center justify-center rounded-full bg-danger/10 text-danger"
+              aria-label="Delete"
+            >
+              {pending ? (
+                <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+            </button>
+          )}
         </div>
       </div>
 
@@ -97,6 +106,9 @@ export function TaskDetail({
       <div className="mt-3 flex flex-wrap gap-1.5">
         <Badge className={completed ? "bg-success/15" : "bg-ink/5 dark:bg-ink-inverse/10"} style={{ color: completed ? "#34C759" : undefined }}>
           {completed ? "Completed" : "Not completed"}
+        </Badge>
+        <Badge className={status.bg} style={{ color: status.color }}>
+          {status.label}
         </Badge>
         <Badge className="bg-ink/5 dark:bg-ink-inverse/10">
           <span className={`size-2 rounded-full ${priority.dot}`} /> {priority.label}
@@ -143,7 +155,15 @@ export function TaskDetail({
       <form action={cAction} className="mt-4 space-y-2">
         <input type="hidden" name="taskId" value={task.id} />
         <Label htmlFor="content">Add a comment</Label>
-        <Textarea id="content" name="content" placeholder="Write something…" autoCapitalize="characters" />
+        <Textarea
+          id="content"
+          name="content"
+          key={cState.ok ? `posted-${task.comments.length}` : "open"}
+          placeholder="Write something…"
+          autoCapitalize="characters"
+          required
+          maxLength={1000}
+        />
         {cState.error && <p className="text-note-caption text-danger">{cState.error}</p>}
         <div className="flex justify-end">
           <Button type="submit" size="sm" loading={cPending}>
@@ -152,12 +172,14 @@ export function TaskDetail({
         </div>
       </form>
 
-      <TaskFormModal
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        subjects={subjects}
-        task={task}
-      />
+      {editOpen && (
+        <TaskFormModal
+          open
+          onClose={() => setEditOpen(false)}
+          subjects={subjects}
+          task={task}
+        />
+      )}
     </div>
   );
 }

@@ -5,7 +5,10 @@ import { getEnrolledSubjectIds } from "@/lib/enrollment";
 export async function GET() {
   const user = await requireUser();
   if (!user) {
-    return Response.json({ error: "Not logged in" });
+    return Response.json({ error: "Not logged in" }, { status: 401 });
+  }
+  if (user.role !== "ADMIN") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const enrolledIds = await getEnrolledSubjectIds(user.id);

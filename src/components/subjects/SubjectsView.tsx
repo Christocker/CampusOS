@@ -82,7 +82,7 @@ export function SubjectsView({
         />
       )}
 
-      <SubjectFormModal open={open} onClose={() => setOpen(false)} />
+      {open && <SubjectFormModal open onClose={() => setOpen(false)} />}
     </div>
   );
 }

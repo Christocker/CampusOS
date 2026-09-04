@@ -1,5 +1,20 @@
 import nodemailer from "nodemailer";
 
+/** Escapes a value for safe interpolation into HTML email templates. */
+export function escapeHtml(value: string | null | undefined): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Keeps user text from breaking email headers (line breaks / length). */
+function safeHeader(value: string): string {
+  return value.replace(/[\r\n]+/g, " ").slice(0, 200);
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 587,
@@ -51,14 +66,16 @@ export async function sendEnrollmentEmail({
   action: "enrolled" | "unenrolled";
 }): Promise<boolean> {
   const verb = action === "enrolled" ? "enrolled in" : "unenrolled from";
+  const safeName = escapeHtml(userName);
+  const safeSubject = escapeHtml(subjectName);
   return sendEmail({
     to,
-    subject: `CampusOS: You ${verb} ${subjectName}`,
+    subject: safeHeader(`CampusOS: You ${verb} ${subjectName}`),
     html: `
       <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #1C1C1E;">CampusOS Notification</h2>
         <p style="color: #8E8E93; font-size: 15px;">
-          Hi ${userName}, you have been <strong>${verb}</strong> <strong>${subjectName}</strong>.
+          Hi ${safeName}, you have been <strong>${verb}</strong> <strong>${safeSubject}</strong>.
         </p>
         <p style="color: #8E8E93; font-size: 13px; margin-top: 24px;">
           This is an automated message from CampusOS.

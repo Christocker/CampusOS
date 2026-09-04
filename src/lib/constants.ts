@@ -51,11 +51,3 @@ export const EVENT_TYPE: Record<
   EXAM: { label: "Exam", color: "#FF9500" },
   EVENT: { label: "Event", color: "#34C759" },
 };
-
-export const NAV_ITEMS = [
-  { href: "/", label: "Home", icon: "Home" },
-  { href: "/subjects", label: "Subjects", icon: "BookOpen" },
-  { href: "/calendar", label: "Calendar", icon: "Calendar" },
-  { href: "/groups", label: "Groups", icon: "Users" },
-  { href: "/profile", label: "Profile", icon: "User" },
-] as const;

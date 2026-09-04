@@ -24,13 +24,18 @@ const items: { href: string; label: string; icon: LucideIcon }[] = [
 export function BottomNav({ subjects }: { subjects: Subject[] }) {
   const pathname = usePathname();
 
+  const isActive = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
+
   return (
     <>
       <nav className="fixed inset-x-0 bottom-0 z-40 pt-safe">
         <div className="mx-auto flex max-w-2xl items-center justify-around px-2 pb-2">
           <div className="glass flex w-full items-center justify-around rounded-3xl px-2 py-1.5">
             {items.slice(0, 2).map((it) => (
-              <NavButton key={it.href} {...it} active={pathname === it.href} />
+              <NavButton key={it.href} {...it} active={isActive(it.href)} />
             ))}
 
             <div className="relative mx-1 h-12 w-12">
@@ -38,7 +43,7 @@ export function BottomNav({ subjects }: { subjects: Subject[] }) {
             </div>
 
             {items.slice(2).map((it) => (
-              <NavButton key={it.href} {...it} active={pathname === it.href} />
+              <NavButton key={it.href} {...it} active={isActive(it.href)} />
             ))}
           </div>
         </div>

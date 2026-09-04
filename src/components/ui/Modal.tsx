@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 type Props = {
@@ -15,17 +15,27 @@ type Props = {
   className?: string;
 };
 
+// Reference-count open modals so stacked modals don't prematurely re-enable
+// background scrolling when the top one closes.
+let openCount = 0;
+
 export function Modal({ open, onClose, title, description, children, className }: Props) {
+  // Keep the latest onClose in a ref so the effect only depends on `open`.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
+    openCount += 1;
     document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeRef.current();
+    document.addEventListener("keydown", onKey);
     return () => {
+      openCount = Math.max(0, openCount - 1);
+      if (openCount === 0) document.body.style.overflow = "";
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (typeof document === "undefined") return null;
 

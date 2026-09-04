@@ -1,16 +1,21 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
-import { loginSchema } from "./validations";
+import { loginSchema, codeLoginSchema } from "./validations";
+import type { ActionState } from "@/features/shared/validations";
 import { AuthError } from "next-auth";
 
-export type ActionState = {
-  error?: string;
-  fieldErrors?: Record<string, string[]>;
-  ok?: boolean;
-  code?: string;
-};
+export type { ActionState };
+
+/**
+ * Only allow same-origin relative redirect targets.
+ * Blocks open-redirect via ?callbackUrl=https://evil.example.
+ */
+function safeRedirect(raw: FormDataEntryValue | null): string {
+  const url = typeof raw === "string" && raw.length > 0 ? raw : "/";
+  if (!url.startsWith("/") || url.startsWith("//")) return "/";
+  return url;
+}
 
 export async function loginAction(
   _prev: ActionState,
@@ -33,7 +38,7 @@ export async function loginAction(
     await signIn("credentials", {
       email: email.toLowerCase().trim(),
       password,
-      redirectTo: (formData.get("callbackUrl") as string) || "/",
+      redirectTo: safeRedirect(formData.get("callbackUrl")),
     });
   } catch (err) {
     if (err instanceof AuthError) {
@@ -49,20 +54,23 @@ export async function loginWithCodeAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const code = String(formData.get("code") ?? "").trim();
-
-  if (!code) {
-    return { error: "Enter your access code." };
+  const parsed = codeLoginSchema.safeParse({
+    code: formData.get("code"),
+  });
+  if (!parsed.success) {
+    return {
+      error: parsed.error.flatten().fieldErrors.code?.[0] ?? "Enter your access code.",
+    };
   }
 
   try {
     await signIn("credentials", {
-      code,
-      redirectTo: "/",
+      code: parsed.data.code,
+      redirectTo: safeRedirect(formData.get("callbackUrl")),
     });
   } catch (err) {
     if (err instanceof AuthError) {
-      return { error: "Invalid or already-used code." };
+      return { error: "Invalid or expired code." };
     }
     throw err;
   }

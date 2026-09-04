@@ -23,9 +23,12 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
     if (state.ok) {
       setSaved(true);
       router.refresh();
-      setTimeout(() => setSaved(false), 2000);
+      const t = setTimeout(() => setSaved(false), 2000);
+      return () => clearTimeout(t);
     }
   }, [state.ok, router]);
+
+  const unchanged = email.trim().toLowerCase() === currentEmail.trim().toLowerCase();
 
   return (
     <div className="card p-4">
@@ -46,16 +49,17 @@ export function EmailForm({ currentEmail }: { currentEmail: string }) {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@email.com"
             autoComplete="email"
+            maxLength={254}
           />
         </div>
-        <Button type="submit" loading={pending} size="sm">
+        <Button type="submit" loading={pending} size="sm" disabled={unchanged}>
           {saved ? <Check className="size-4" /> : "Save"}
         </Button>
       </form>
-      {state.error && (
+      {state.error && !saved && (
         <p className="mt-2 text-xs text-danger">{state.error}</p>
       )}
-      {state.ok && (
+      {saved && (
         <p className="mt-2 text-xs text-success">Email updated.</p>
       )}
     </div>

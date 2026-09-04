@@ -54,10 +54,18 @@ export function CreateSheet({ subjects }: { subjects: Subject[] }) {
         </div>
       </Modal>
 
-      <TaskFormModal open={mode === "task"} onClose={closeAll} subjects={subjects} />
-      <SubjectFormModal open={mode === "subject"} onClose={closeAll} />
-      <EventFormModal open={mode === "event"} onClose={closeAll} subjects={subjects} />
-      <GroupFormModal open={mode === "group"} onClose={closeAll} />
+      {mode === "task" && (
+        <TaskFormModal open onClose={closeAll} subjects={subjects} />
+      )}
+      {mode === "subject" && (
+        <SubjectFormModal open onClose={closeAll} />
+      )}
+      {mode === "event" && (
+        <EventFormModal open onClose={closeAll} subjects={subjects} />
+      )}
+      {mode === "group" && (
+        <GroupFormModal open onClose={closeAll} />
+      )}
 
       <button
         onClick={() => setSheetOpen(true)}

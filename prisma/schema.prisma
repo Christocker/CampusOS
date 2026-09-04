@@ -78,6 +78,8 @@ model Subject {
   user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks       Task[]
   enrollments UserEnrollment[]
+  events      CalendarEvent[]  @relation("SubjectCalendarEvents")
+  files       File[]           @relation("SubjectFiles")
 
   @@index([userId])
 }
@@ -166,9 +168,11 @@ model File {
 
   owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  subject Subject? @relation("SubjectFiles", fields: [subjectId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([groupId])
+  @@index([subjectId])
 }
 
 model Comment {
@@ -197,8 +201,10 @@ model CalendarEvent {
   createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject? @relation("SubjectCalendarEvents", fields: [subjectId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([subjectId])
   @@index([start])
 }
 

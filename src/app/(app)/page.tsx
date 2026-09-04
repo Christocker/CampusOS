@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Plus, BookOpen, ListTodo, CalendarClock, Trophy, User } from "lucide-react";
+import { Plus, BookOpen, ListTodo, CalendarClock, Inbox, User } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { SessionExpired } from "@/components/auth/SessionExpired";
-import { getEnrolledSubjectIds, enrolledFilter } from "@/lib/enrollment";
+import { getEnrolledSubjectIds, getUsableSubjectIds, visibleTaskFilter } from "@/lib/enrollment";
 import { greeting } from "@/lib/utils";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Reveal } from "@/components/layout/Reveal";
@@ -17,8 +17,11 @@ export default async function DashboardPage() {
   const user = await requireUser();
   if (!user) return <SessionExpired />;
 
-  const enrolledIds = await getEnrolledSubjectIds(user.id);
-  const taskFilter = enrolledFilter(enrolledIds);
+  const [enrolledIds, usableIds] = await Promise.all([
+    getEnrolledSubjectIds(user.id),
+    getUsableSubjectIds(user.id),
+  ]);
+  const taskFilter = visibleTaskFilter(user.id, usableIds);
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -34,7 +37,7 @@ export default async function DashboardPage() {
       orderBy: { deadline: "asc" },
     }),
     prisma.subject.findMany({
-      where: enrolledIds.length > 0 ? { id: { in: enrolledIds } } : { id: { in: ["__NONE__"] } },
+      where: { id: { in: usableIds } },
       include: { _count: { select: { tasks: true } } },
       orderBy: { name: "asc" },
     }),
@@ -50,14 +53,16 @@ export default async function DashboardPage() {
   const completed = tasks.filter((t) => completionMap.get(t.id) === true);
 
   const todayList = active
-    .filter((t) => t.deadline && t.deadline >= startOfToday && t.deadline <= endOfToday)
+    .filter((t) => t.deadline && t.deadline >= startOfToday && t.deadline < endOfToday)
     .sort((a, b) => (a.deadline?.getTime() ?? 0) - (b.deadline?.getTime() ?? 0));
   const overdue = active.filter((t) => t.deadline && t.deadline < startOfToday);
   const todays = [...overdue, ...todayList];
 
   const upcoming = active
-    .filter((t) => t.deadline && t.deadline > endOfToday && t.deadline <= weekHorizon)
+    .filter((t) => t.deadline && t.deadline >= endOfToday && t.deadline <= weekHorizon)
     .sort((a, b) => (a.deadline?.getTime() ?? 0) - (b.deadline?.getTime() ?? 0));
+
+  const noDeadline = active.filter((t) => !t.deadline);
 
   const progressValue = tasks.length ? (completed.length / tasks.length) * 100 : 0;
 
@@ -93,7 +98,7 @@ export default async function DashboardPage() {
         {todays.length ? (
           <div className="space-y-2.5">
             {todays.slice(0, 5).map((t) => (
-              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} />
+              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} completionMap={completionMap} />
             ))}
           </div>
         ) : (
@@ -112,7 +117,20 @@ export default async function DashboardPage() {
           </div>
           <div className="space-y-2.5">
             {upcoming.slice(0, 4).map((t) => (
-              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} />
+              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} completionMap={completionMap} />
+            ))}
+          </div>
+        </Reveal>
+      )}
+
+      {noDeadline.length > 0 && (
+        <Reveal delay={0.15} className="mt-6">
+          <div className="mb-3 flex items-center gap-2 text-base font-semibold">
+            <Inbox className="size-4 text-primary" /> No deadline
+          </div>
+          <div className="space-y-2.5">
+            {noDeadline.slice(0, 4).map((t) => (
+              <TaskCard key={t.id} task={t} href={`/tasks/${t.id}`} completionMap={completionMap} />
             ))}
           </div>
         </Reveal>

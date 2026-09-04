@@ -6,23 +6,25 @@ import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Button } from "@/components/ui/Button";
 import { logoutAction } from "@/features/auth/actions";
 import { initials } from "@/lib/utils";
-import { BookOpen, ListTodo, Users, LogOut, Shield } from "lucide-react";
+import { BookOpen, ListTodo, CheckCircle2, LogOut, Shield } from "lucide-react";
 import { EmailForm } from "@/components/profile/EmailForm";
+import { getEnrolledSubjectIds } from "@/lib/enrollment";
 
 export default async function ProfilePage() {
   const user = await requireUser();
   if (!user) return <SessionExpired />;
 
-  const [subjects, tasks, members] = await Promise.all([
-    prisma.subject.count(),
-    prisma.task.count(),
-    prisma.user.count({ where: { role: "STUDENT" } }),
+  // Personal stats, scoped to this user.
+  const [enrolledIds, myTasks, myDone] = await Promise.all([
+    getEnrolledSubjectIds(user.id),
+    prisma.task.count({ where: { userId: user.id } }),
+    prisma.taskCompletion.count({ where: { userId: user.id, completed: true } }),
   ]);
 
   const stats = [
-    { label: "Members", value: members, icon: Users },
-    { label: "Tasks", value: tasks, icon: ListTodo },
-    { label: "Subjects", value: subjects, icon: BookOpen },
+    { label: "Subjects enrolled", value: enrolledIds.length, icon: BookOpen },
+    { label: "My tasks", value: myTasks, icon: ListTodo },
+    { label: "Completed by me", value: myDone, icon: CheckCircle2 },
   ];
 
   return (

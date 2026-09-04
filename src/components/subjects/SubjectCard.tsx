@@ -52,9 +52,7 @@ export function SubjectCard({
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-note-body font-medium">
-            {(subject as Subject & { classCode?: string }).classCode
-              ? `[${(subject as Subject & { classCode?: string }).classCode}] `
-              : ""}{subject.name}
+            {subject.classCode ? `[${subject.classCode}] ` : ""}{subject.name}
           </p>
           <p className="truncate text-note-caption text-ink-muted">
             {subject.professor ? `Prof. ${subject.professor}` : ""}

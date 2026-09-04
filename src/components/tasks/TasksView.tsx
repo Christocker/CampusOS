@@ -41,14 +41,17 @@ export function TasksView({
     const isDone = completionMap.get(t.id) === true;
     if (tab === "All") return true;
     if (tab === "Completed") return isDone;
-    const tomorrow = new Date(startOfToday());
+    const today = startOfToday();
+    const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     if (tab === "Today") {
+      // Due today or overdue — but never tasks without a deadline, and
+      // never already-done tasks.
       if (isDone) return false;
-      return !t.deadline || t.deadline < tomorrow;
+      return !!t.deadline && t.deadline < tomorrow;
     }
     if (tab === "Upcoming") {
-      if (t.status === "COMPLETED") return false;
+      if (isDone) return false;
       return !!t.deadline && t.deadline >= tomorrow;
     }
     return true;
@@ -104,7 +107,9 @@ export function TasksView({
         />
       )}
 
-      <TaskFormModal open={open} onClose={() => setOpen(false)} subjects={subjects} />
+      {open && (
+        <TaskFormModal open onClose={() => setOpen(false)} subjects={subjects} />
+      )}
     </div>
   );
 }

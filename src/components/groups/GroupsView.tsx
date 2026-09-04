@@ -7,7 +7,6 @@ import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { GroupFormModal } from "@/components/groups/GroupFormModal";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Users as UsersIcon } from "lucide-react";
 import type { Group } from "@prisma/client";
 
 type GroupSummary = Group & {
@@ -35,7 +34,7 @@ export function GroupsView({ groups }: { groups: GroupSummary[] }) {
             <Link key={g.id} href={`/groups/${g.id}`}>
               <div className="flex items-center gap-3 px-4 py-3 transition active:bg-ink/5 dark:active:bg-ink-inverse/10">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <UsersIcon className="size-4.5" />
+                  <Users className="size-4" />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-note-body font-medium">{g.name}</p>
@@ -60,7 +59,7 @@ export function GroupsView({ groups }: { groups: GroupSummary[] }) {
         />
       )}
 
-      <GroupFormModal open={open} onClose={() => setOpen(false)} />
+      {open && <GroupFormModal open onClose={() => setOpen(false)} />}
     </div>
   );
 }

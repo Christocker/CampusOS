@@ -2,38 +2,48 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase/client";
+import { getSupabase } from "@/lib/supabase/client";
 
-const TABLES = ["Task", "Subject", "UserEnrollment", "InviteCode"];
+const TABLES = [
+  "Task",
+  "Subject",
+  "UserEnrollment",
+  "InviteCode",
+  "CalendarEvent",
+  "Comment",
+  "TaskCompletion",
+  "Group",
+  "GroupMember",
+];
 
 export function useRealtimeRefresh() {
   const router = useRouter();
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
 
     const debouncedRefresh = () => {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
       refreshTimeout.current = setTimeout(() => router.refresh(), 300);
     };
 
-    const channels = TABLES.map((table) =>
-      supabase
-        .channel(`realtime:${table}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table },
-          debouncedRefresh,
-        )
-        .subscribe(),
-    );
+    // One channel with multiple subscriptions (Supabase connection limit is
+    // per connection, not per channel — 9 channels was wasteful).
+    let channel = supabase.channel("realtime:campusos");
+    for (const table of TABLES) {
+      channel = channel.on(
+        "postgres_changes",
+        { event: "*", schema: "public", table },
+        debouncedRefresh,
+      );
+    }
+    channel.subscribe();
 
     return () => {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
-      for (const ch of channels) {
-        supabase.removeChannel(ch);
-      }
+      supabase.removeChannel(channel);
     };
   }, [router]);
 }

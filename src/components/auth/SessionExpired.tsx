@@ -14,6 +14,11 @@ export function SessionExpired() {
         <p className="mt-2 text-sm text-ink-muted">
           Redirecting to sign in...
         </p>
+        <p className="mt-4 text-sm">
+          <a href="/signout" className="font-medium text-primary underline">
+            Sign in again
+          </a>
+        </p>
       </div>
     </div>
   );

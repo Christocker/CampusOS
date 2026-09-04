@@ -8,31 +8,67 @@ import { cn } from "@/lib/utils";
 type Subject = { id: string; name: string; color: string; classCode?: string | null };
 type User = { id: string; name: string; image: string | null };
 type Task = { id: string; title: string; subjectId: string | null; userId: string; deadline?: Date | null; priority?: string };
+type Enrollment = { userId: string; subjectId: string };
 
 export function ProgressTracker({
   subjects,
   users,
   tasks,
   completionMap = new Map(),
+  enrollments = [],
   currentUserId,
 }: {
   subjects: Subject[];
   users: User[];
   tasks: Task[];
   completionMap?: Map<string, boolean>;
+  enrollments?: Enrollment[];
   currentUserId: string;
 }) {
   const [tab, setTab] = useState<"leaderboard" | "tasks">("leaderboard");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const totalTasks = tasks.length;
-  const totalDone = tasks.filter((t) => completionMap.get(`${t.id}:${currentUserId}`) === true).length;
+  // Subject tasks are shared by everyone enrolled in that subject —
+  // a task's creator is NOT its only owner. For a given user, their
+  // workload = tasks in subjects they're enrolled in + tasks they created.
+  const enrolledSubjectIdsFor = (userId: string) =>
+    enrollments.filter((e) => e.userId === userId).map((e) => e.subjectId);
 
-  const userStats = users.map((u) => {
-    const done = tasks.filter((t) => completionMap.get(`${t.id}:${u.id}`) === true).length;
-    return { ...u, total: totalTasks, done, pct: totalTasks ? Math.round((done / totalTasks) * 100) : 0 };
-  })
-    .filter((u) => u.done > 0 || u.id === currentUserId)
+  const tasksForUser = (userId: string): Task[] => {
+    const subjIds = enrolledSubjectIdsFor(userId);
+    const subjSet = new Set(subjIds);
+    return tasks.filter(
+      (t) =>
+        (t.subjectId && subjSet.has(t.subjectId)) || t.userId === userId,
+    );
+  };
+
+  // Viewer's own scope for the Overall bar = the subjects shown on this page.
+  const viewerSubjectIds = new Set(subjects.map((s) => s.id));
+  const myTasks = tasks.filter(
+    (t) => (t.subjectId && viewerSubjectIds.has(t.subjectId)) || t.userId === currentUserId,
+  );
+  const totalTasks = myTasks.length;
+  const totalDone = myTasks.filter(
+    (t) => completionMap.get(`${t.id}:${currentUserId}`) === true,
+  ).length;
+  const overallPct = totalTasks ? Math.round((totalDone / totalTasks) * 100) : 0;
+
+  // Leaderboard: each user's completion of the tasks they actually have.
+  const userStats = users
+    .map((u) => {
+      const assigned = tasksForUser(u.id);
+      const done = assigned.filter(
+        (t) => completionMap.get(`${t.id}:${u.id}`) === true,
+      ).length;
+      return {
+        ...u,
+        total: assigned.length,
+        done,
+        pct: assigned.length ? Math.round((done / assigned.length) * 100) : 0,
+      };
+    })
+    .filter((u) => u.total > 0 || u.id === currentUserId)
     .sort((a, b) => b.pct - a.pct || b.done - a.done);
 
   const tasksBySubject = subjects.map((s) => ({
@@ -49,7 +85,10 @@ export function ProgressTracker({
   const formatDl = (d: Date | null | undefined) => {
     if (!d) return "No deadline";
     const date = new Date(d);
-    const hasTime = !(date.getHours() === 0 && date.getMinutes() === 0);
+    // 00:00 = no explicit time; 23:59 = date-only end-of-day default.
+    const hasTime =
+      !(date.getHours() === 0 && date.getMinutes() === 0) &&
+      !(date.getHours() === 23 && date.getMinutes() === 59);
     const dateStr = date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return hasTime ? `${dateStr} ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}` : dateStr;
   };
@@ -61,12 +100,12 @@ export function ProgressTracker({
       <div className="card mb-4 p-4">
         <div className="mb-2 flex items-baseline justify-between">
           <p className="text-sm font-semibold">Overall</p>
-          <p className="text-sm font-semibold text-ink">{totalTasks ? Math.round((totalDone / totalTasks) * 100) : 0}%</p>
+          <p className="text-sm font-semibold text-ink">{overallPct}%</p>
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-border-light dark:bg-border-dark">
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-700 ease-out"
-            style={{ width: `${totalTasks ? (totalDone / totalTasks) * 100 : 0}%` }}
+            style={{ width: `${overallPct}%` }}
           />
         </div>
       </div>
@@ -132,7 +171,11 @@ export function ProgressTracker({
             <div className="space-y-3">
               {tasksBySubject.map((s) => {
                 const isOpen = expanded === s.id;
-                const done = s.tasks.filter((t) => completionMap.get(`${t.id}:${currentUserId}`) === true).length;
+                // The viewer's completion state (shared tasks: everyone's
+                // workload is the same list, like the dashboard/Tasks page).
+                const done = s.tasks.filter(
+                  (t) => completionMap.get(`${t.id}:${currentUserId}`) === true,
+                ).length;
                 return (
                   <div key={s.id} className="card overflow-hidden">
                     <button
@@ -142,9 +185,7 @@ export function ProgressTracker({
                       <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">
-                          {(s as Subject & { classCode?: string }).classCode
-                            ? `[${(s as Subject & { classCode?: string }).classCode}] `
-                            : ""}{s.name}
+                          {s.classCode ? `[${s.classCode}] ` : ""}{s.name}
                         </p>
                         <p className="text-xs text-ink-muted">{done} of {s.tasks.length} done</p>
                       </div>
@@ -182,8 +223,7 @@ export function ProgressTracker({
                                     ? "bg-primary/10 text-primary"
                                     : "bg-ink/5 text-ink-muted",
                               )}>
-                                {assignee?.name ?? "Unassigned"}
-                                {isDone ? " ✓" : ""}
+                                {t.userId === currentUserId ? "Yours" : `by ${assignee?.name ?? "—"}`}
                               </span>
                             </div>
                           );

@@ -7,6 +7,11 @@ export default async function LoginPage({
   searchParams: Promise<{ callbackUrl?: string }>;
 }) {
   const { callbackUrl } = await searchParams;
+  // Only allow same-origin relative redirect targets.
+  const safeCallbackUrl =
+    callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+      ? callbackUrl
+      : undefined;
 
   return (
     <div className="space-y-8">
@@ -20,7 +25,7 @@ export default async function LoginPage({
         </p>
       </div>
       <div className="card p-5">
-        <LoginForm callbackUrl={callbackUrl} />
+        <LoginForm callbackUrl={safeCallbackUrl} />
       </div>
     </div>
   );
