@@ -2,7 +2,10 @@
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Include the Vercel (Linux/RHEL) query engine so the bundled client can
+  // find it at runtime; "native" keeps local Windows/macOS/Linux working.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
