@@ -3,6 +3,7 @@
 import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import type { ReactNode } from "react";
+import { RouteProgress } from "@/components/layout/RouteProgress";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
+        <RouteProgress />
         {children}
       </ThemeProvider>
     </SessionProvider>

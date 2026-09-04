@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil, Trash2, Check, Plus } from "lucide-react";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { SubjectFormModal } from "@/components/subjects/SubjectFormModal";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import { deleteSubjectAction } from "@/features/subjects/actions";
 import {
   enrollSubjectAction,
@@ -59,18 +60,17 @@ export function SubjectDetail({
             <button
               disabled={enrollPending}
               onClick={toggleEnroll}
-              className="flex items-center gap-1.5 rounded-full bg-ink/5 px-3 text-xs font-medium text-ink dark:bg-ink-inverse/10 dark:text-ink-inverse disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-full bg-ink/5 px-3 text-xs font-medium text-ink disabled:opacity-60 dark:bg-ink-inverse/10 dark:text-ink-inverse"
               aria-label={enrolled ? "Unenroll" : "Enroll"}
             >
-              {enrolled ? (
-                <>
-                  <Check className="size-3.5 text-success" /> Enrolled
-                </>
+              {enrollPending ? (
+                <Spinner className="size-3.5" />
+              ) : enrolled ? (
+                <Check className="size-3.5 text-success" />
               ) : (
-                <>
-                  <Plus className="size-3.5" /> Enroll
-                </>
+                <Plus className="size-3.5" />
               )}
+              {enrollPending ? "Saving…" : enrolled ? "Enrolled" : "Enroll"}
             </button>
           )}
           {isOwner && (

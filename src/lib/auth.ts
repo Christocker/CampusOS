@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { authConfig } from "@/lib/auth.config";
@@ -27,6 +28,15 @@ async function timingSafeDummyCompare(password: string): Promise<void> {
   await bcrypt.compare(password, await dummyHashPromise);
 }
 
+// Cached per-request so a single page render (which may call auth() from the
+// layout and again from a component) triggers ONE user query, not several.
+const loadFreshUser = cache((id: string) =>
+  prisma.user.findUnique({
+    where: { id },
+    select: { id: true, name: true, email: true, image: true, role: true },
+  }),
+);
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
@@ -41,10 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = "";
         return session;
       }
-      const dbUser = await prisma.user.findUnique({
-        where: { id },
-        select: { id: true, name: true, email: true, image: true, role: true },
-      });
+      const dbUser = await loadFreshUser(id);
       if (!dbUser) {
         // User was deleted — invalidate identity so consumers treat this
         // session as signed out.

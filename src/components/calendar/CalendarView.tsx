@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Plus, ChevronLeft, ChevronRight, Trash2, Pencil } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { EventFormModal } from "@/components/calendar/EventFormModal";
 import { cn, formatDeadline } from "@/lib/utils";
 import { EVENT_TYPE } from "@/lib/constants";
@@ -79,7 +80,7 @@ function DayItemRow({
           className="flex size-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger hover:bg-danger/15 disabled:opacity-50"
           aria-label="Delete event"
         >
-          <Trash2 className="size-3.5" />
+          {deleting ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
         </button>
       )}
     </div>
@@ -100,6 +101,7 @@ export function CalendarView({
   const [selected, setSelected] = useState(new Date());
   const [eventOpen, setEventOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
   const [deleting, startDelete] = useTransition();
 
@@ -187,8 +189,10 @@ export function CalendarView({
 
   const onDeleteEvent = (id: string) => {
     if (!confirm("Delete this event?")) return;
+    setDeletingId(id);
     startDelete(async () => {
       const res = await deleteEventAction(id);
+      setDeletingId(null);
       if (res?.error) alert(res.error);
       router.refresh();
     });
@@ -357,7 +361,7 @@ export function CalendarView({
           {selectedItems.length ? (
             <div className="space-y-2">
               {selectedItems.map((it) => (
-                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting} />
+                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting && deletingId === it.id} />
               ))}
             </div>
           ) : (
@@ -374,7 +378,7 @@ export function CalendarView({
           {selectedItems.length ? (
             <div className="space-y-2">
               {selectedItems.map((it) => (
-                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting} />
+                <DayItemRow key={it.id} it={it} onDeleteEvent={onDeleteEvent} onEditEvent={openEditEvent} deleting={deleting && deletingId === it.id} />
               ))}
             </div>
           ) : (

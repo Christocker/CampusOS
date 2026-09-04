@@ -1,10 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Shield, User } from "lucide-react";
 import { deleteUserAction, changeUserRoleAction } from "@/features/admin/actions";
 import { initials } from "@/lib/utils";
+import { Spinner } from "@/components/ui/Spinner";
 
 export type ManagedUser = {
   id: string;
@@ -21,6 +22,7 @@ function Row({
   currentUserId: string;
 }) {
   const [pending, start] = useTransition();
+  const [busy, setBusy] = useState<null | "role" | "del">(null);
   const router = useRouter();
   const isSelf = u.id === currentUserId;
 
@@ -32,8 +34,10 @@ function Row({
       )
     )
       return;
+    setBusy("role");
     start(async () => {
       const res = await changeUserRoleAction(u.id, next);
+      setBusy(null);
       if (res?.error) {
         alert(res.error);
         return;
@@ -49,8 +53,10 @@ function Row({
       )
     )
       return;
+    setBusy("del");
     start(async () => {
       const res = await deleteUserAction(u.id);
+      setBusy(null);
       if (res?.error) {
         alert(res.error);
         return;
@@ -86,7 +92,9 @@ function Row({
           className="flex size-8 items-center justify-center rounded-full bg-ink/5 text-ink-muted hover:bg-ink/10 disabled:opacity-50 dark:bg-ink-inverse/10 dark:hover:bg-ink-inverse/15"
           aria-label="Toggle role"
         >
-          {u.role === "ADMIN" ? (
+          {busy === "role" ? (
+            <Spinner className="size-3.5" />
+          ) : u.role === "ADMIN" ? (
             <Shield className="size-3.5" />
           ) : (
             <User className="size-3.5" />
@@ -100,7 +108,7 @@ function Row({
           className="flex size-8 items-center justify-center rounded-full bg-danger/10 text-danger hover:bg-danger/15 disabled:opacity-50"
           aria-label="Delete user"
         >
-          <Trash2 className="size-3.5" />
+          {busy === "del" ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
         </button>
       </div>
     </div>

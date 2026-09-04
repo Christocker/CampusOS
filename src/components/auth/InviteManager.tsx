@@ -3,6 +3,7 @@
 import { useActionState, useTransition, useState, useRef, useEffect } from "react";
 import { Copy, Check, Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { Input, Label, Select } from "@/components/ui/Input";
 import { createInviteCodeAction } from "@/features/auth/inviteActions";
 import {
@@ -239,7 +240,7 @@ function CodeRow({
           className="flex size-7 items-center justify-center rounded-lg text-ink-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-50"
           aria-label="Delete code"
         >
-          <Trash2 className="size-3.5" />
+          {isPending ? <Spinner className="size-3.5" /> : <Trash2 className="size-3.5" />}
         </button>
       </div>
     </div>

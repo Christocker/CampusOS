@@ -3,7 +3,8 @@
 import Link from "next/link";
 
 import { Check } from "lucide-react";
-import { useTransition, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { useTransition, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn, formatDeadline } from "@/lib/utils";
 import { toggleTaskCompleteAction } from "@/features/tasks/actions";
@@ -42,40 +43,56 @@ function TaskBody({
 export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject; href?: string; completionMap?: Map<string, boolean> }) {
   const [pending, start] = useTransition();
   const router = useRouter();
-  const prevPending = useRef(pending);
-  const completed = completionMap?.get(task.id) ?? false;
+
+  const serverCompleted = completionMap?.get(task.id) ?? false;
+  // Optimistic override flips instantly; cleared once the server value agrees.
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const completed = optimistic ?? serverCompleted;
 
   useEffect(() => {
-    if (prevPending.current && !pending) {
-      router.refresh();
+    if (optimistic !== null && optimistic === serverCompleted) {
+      setOptimistic(null);
     }
-    prevPending.current = pending;
-  }, [pending, router]);
+  }, [optimistic, serverCompleted]);
+
+  const toggle = () => {
+    const next = !completed;
+    setOptimistic(next);
+    start(async () => {
+      const res = await toggleTaskCompleteAction(task.id);
+      if (res?.error) {
+        setOptimistic(null); // revert to server truth
+        alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
 
   return (
     <div
       className="flex items-center gap-3 px-4 py-3"
     >
       <button
-        disabled={pending}
-        onClick={() =>
-          start(async () => {
-            const res = await toggleTaskCompleteAction(task.id);
-            if (res?.error) alert(res.error);
-          })
-        }
+        onClick={toggle}
         aria-label={completed ? "Mark incomplete" : "Mark complete"}
+        aria-pressed={completed}
         className={cn(
-          "flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition",
+          "relative flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
           completed
             ? "border-success bg-success text-white"
             : "border-separator-light dark:border-separator-dark",
         )}
       >
-        {pending ? (
-          <span className="size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        ) : (
+        <motion.span
+          initial={false}
+          animate={{ scale: completed ? 1 : 0, opacity: completed ? 1 : 0 }}
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        >
           <Check className="size-3.5" strokeWidth={3} />
+        </motion.span>
+        {pending && (
+          <span className="absolute size-6 animate-ping rounded-full bg-success/30" />
         )}
       </button>
 

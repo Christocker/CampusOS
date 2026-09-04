@@ -3,8 +3,8 @@ import { Plus, BookOpen, ListTodo, CalendarClock, Inbox, User } from "lucide-rea
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { SessionExpired } from "@/components/auth/SessionExpired";
-import { getEnrolledSubjectIds, getUsableSubjectIds, visibleTaskFilter } from "@/lib/enrollment";
 import { greeting } from "@/lib/utils";
+import { getUsableSubjects, visibleTaskFilter } from "@/lib/enrollment";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { Reveal } from "@/components/layout/Reveal";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -17,10 +17,10 @@ export default async function DashboardPage() {
   const user = await requireUser();
   if (!user) return <SessionExpired />;
 
-  const [enrolledIds, usableIds] = await Promise.all([
-    getEnrolledSubjectIds(user.id),
-    getUsableSubjectIds(user.id),
-  ]);
+  // AppShell already fetched these for the same request (React cache) → this
+  // resolves from cache with no extra round-trip. usableIds derived locally.
+  const usableSubjects = await getUsableSubjects(user.id);
+  const usableIds = usableSubjects.map((s) => s.id);
   const taskFilter = visibleTaskFilter(user.id, usableIds);
 
   const now = new Date();
@@ -30,22 +30,18 @@ export default async function DashboardPage() {
   const weekHorizon = new Date(startOfToday);
   weekHorizon.setDate(startOfToday.getDate() + 8);
 
-  const [tasks, subjects, completions] = await Promise.all([
+  const [tasks, completions] = await Promise.all([
     prisma.task.findMany({
       where: taskFilter,
       include: { subject: true, user: { select: { name: true } } },
       orderBy: { deadline: "asc" },
-    }),
-    prisma.subject.findMany({
-      where: { id: { in: usableIds } },
-      include: { _count: { select: { tasks: true } } },
-      orderBy: { name: "asc" },
     }),
     prisma.taskCompletion.findMany({
       where: { userId: user.id },
       select: { taskId: true, completed: true },
     }),
   ]);
+  const subjects = usableSubjects;
 
   const completionMap = new Map(completions.map((c) => [c.taskId, c.completed]));
 
@@ -105,7 +101,7 @@ export default async function DashboardPage() {
           <EmptyState
             icon={<ListTodo className="size-5" />}
             title="Nothing due right now"
-            description={enrolledIds.length === 0 ? "Enroll in a subject to get started." : "You're all caught up."}
+            description={usableIds.length === 0 ? "Enroll in a subject to get started." : "You're all caught up."}
           />
         )}
       </Reveal>

@@ -3,11 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { SessionExpired } from "@/components/auth/SessionExpired";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
-import { Button } from "@/components/ui/Button";
-import { logoutAction } from "@/features/auth/actions";
 import { initials } from "@/lib/utils";
-import { BookOpen, ListTodo, CheckCircle2, LogOut, Shield } from "lucide-react";
+import { BookOpen, ListTodo, CheckCircle2, Shield } from "lucide-react";
 import { EmailForm } from "@/components/profile/EmailForm";
+import { SignOutForm } from "@/components/profile/SignOutForm";
 import { getEnrolledSubjectIds } from "@/lib/enrollment";
 
 export default async function ProfilePage() {
@@ -61,11 +60,7 @@ export default async function ProfilePage() {
         </Link>
       )}
 
-      <form action={logoutAction}>
-        <Button type="submit" variant="danger" size="lg" className="w-full">
-          <LogOut className="size-4" /> Sign out
-        </Button>
-      </form>
+      <SignOutForm />
     </div>
   );
 }

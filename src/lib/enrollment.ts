@@ -1,14 +1,15 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";
 
-/** Returns the subject IDs the user is enrolled in. */
-export async function getEnrolledSubjectIds(userId: string): Promise<string[]> {
+/** Returns the subject IDs the user is enrolled in (cached per request). */
+export const getEnrolledSubjectIds = cache(async (userId: string): Promise<string[]> => {
   const enrollments = await prisma.userEnrollment.findMany({
     where: { userId },
     select: { subjectId: true },
   });
   return enrollments.map((e) => e.subjectId);
-}
+});
 
 /**
  * Prisma filter for tasks a user should see in the main task surfaces:
@@ -37,14 +38,27 @@ export function visibleTaskFilter(
  * IDs of subjects the user can use = enrolled ∪ owned.
  * Passing this (instead of raw enrolled ids) to visibleTaskFilter fixes
  * task counts that ignored an owner's own subjects.
+ * Cached per request: shared by AppShell, dashboard, tasks, calendar, progress.
  */
-export async function getUsableSubjectIds(userId: string): Promise<string[]> {
+export const getUsableSubjectIds = cache(async (userId: string): Promise<string[]> => {
   const subjects = await prisma.subject.findMany({
     where: { OR: [{ userId }, { enrollments: { some: { userId } } }] },
     select: { id: true },
   });
   return subjects.map((s) => s.id);
-}
+});
+
+/**
+ * Full usable subject rows (enrolled ∪ owned), ordered by name.
+ * Shared (cached) by AppShell and the dashboard to avoid duplicate queries.
+ */
+export const getUsableSubjects = cache((userId: string) =>
+  prisma.subject.findMany({
+    where: { OR: [{ userId }, { enrollments: { some: { userId } } }] },
+    orderBy: { name: "asc" },
+    include: { _count: { select: { tasks: true } } },
+  }),
+);
 
 /** Whether a user may create/move tasks into a given subject. */
 export async function userCanUseSubject(
