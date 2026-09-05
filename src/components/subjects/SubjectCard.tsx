@@ -34,12 +34,16 @@ export function SubjectCard({
     e.preventDefault();
     e.stopPropagation();
     if (!canToggle) return;
-    startTransition(() => {
+    // Awaiting inside an async transition keeps `isPending` true until the
+    // DB write actually completes — otherwise the follow-up router.refresh()
+    // races the action and the UI appears not to update.
+    startTransition(async () => {
       if (enrolled) {
-        unenrollSubjectAction(subject.id);
+        await unenrollSubjectAction(subject.id);
       } else {
-        enrollSubjectAction(subject.id);
+        await enrollSubjectAction(subject.id);
       }
+      router.refresh();
     });
   };
 

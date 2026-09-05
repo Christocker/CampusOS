@@ -73,10 +73,13 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
     <div
       className="flex items-center gap-3 px-4 py-3"
     >
-      <button
+      <motion.button
+        type="button"
         onClick={toggle}
         aria-label={completed ? "Mark incomplete" : "Mark complete"}
         aria-pressed={completed}
+        animate={pending ? { scale: 0.92 } : { scale: 1 }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
         className={cn(
           "relative flex size-6 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors",
           completed
@@ -84,17 +87,11 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
             : "border-separator-light dark:border-separator-dark",
         )}
       >
-        <motion.span
-          initial={false}
-          animate={{ scale: completed ? 1 : 0, opacity: completed ? 1 : 0 }}
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        >
-          <Check className="size-3.5" strokeWidth={3} />
-        </motion.span>
+        <Check className="size-3.5" strokeWidth={3} />
         {pending && (
-          <span className="absolute size-6 animate-ping rounded-full bg-success/30" />
+          <span className="absolute inset-0 animate-ping rounded-full bg-success/30" />
         )}
-      </button>
+      </motion.button>
 
       {href ? (
         <Link href={href} className="min-w-0 flex-1">
@@ -113,3 +110,4 @@ export function TaskCard({ task, href, completionMap }: { task: TaskWithSubject;
     </div>
   );
 }
+
