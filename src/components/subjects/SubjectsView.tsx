@@ -14,9 +14,11 @@ type SubjectWithCount = Subject & { _count?: { tasks: number } };
 export function SubjectsView({
   subjects,
   enrolledIds,
+  currentUserId,
 }: {
   subjects: SubjectWithCount[];
   enrolledIds: string[];
+  currentUserId: string;
 }) {
   const [open, setOpen] = useState(false);
   const [show, setShow] = useState<"enrolled" | "all">("enrolled");
@@ -55,7 +57,12 @@ export function SubjectsView({
       {display.length ? (
         <div className="card divide-y divide-separator-light overflow-hidden dark:divide-separator-dark">
           {display.map((s) => (
-            <SubjectCard key={s.id} subject={s} enrolled={enrolledIds.includes(s.id)} />
+            <SubjectCard
+              key={s.id}
+              subject={s}
+              enrolled={enrolledIds.includes(s.id)}
+              isOwner={s.userId === currentUserId}
+            />
           ))}
         </div>
       ) : show === "enrolled" ? (

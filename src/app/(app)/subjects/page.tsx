@@ -20,5 +20,5 @@ export default async function SubjectsPage() {
 
   const enrolledIds = enrollments.map((e) => e.subjectId);
 
-  return <SubjectsView subjects={subjects} enrolledIds={enrolledIds} />;
+  return <SubjectsView subjects={subjects} enrolledIds={enrolledIds} currentUserId={user.id} />;
 }

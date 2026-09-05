@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { ChevronRight, Check, Plus } from "lucide-react";
+import { ChevronRight, Check, Crown, Plus } from "lucide-react";
 import { useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { enrollSubjectAction, unenrollSubjectAction } from "@/features/subjects/enrollmentActions";
@@ -12,11 +12,13 @@ export function SubjectCard({
   subject,
   enrolled,
   canToggle = true,
+  isOwner = false,
   showIndicator = true,
 }: {
   subject: Subject & { _count?: { tasks: number } };
   enrolled?: boolean;
   canToggle?: boolean;
+  isOwner?: boolean;
   showIndicator?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -33,7 +35,7 @@ export function SubjectCard({
   const toggleEnroll = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!canToggle) return;
+    if (!canToggle || isOwner) return;
     // Awaiting inside an async transition keeps `isPending` true until the
     // DB write actually completes — otherwise the follow-up router.refresh()
     // races the action and the UI appears not to update.
@@ -63,7 +65,18 @@ export function SubjectCard({
             {subject._count?.tasks ? `${subject.professor ? " · " : ""}${subject._count.tasks} tasks` : ""}
           </p>
         </div>
-        {canToggle ? (
+        {/* Owners always remain enrolled in their own subject; the toggle
+            would silently no-op, so show a clear "Owner" badge instead. */}
+        {isOwner ? (
+          <span
+            className="flex items-center gap-1 rounded-full bg-warning/15 px-2.5 py-1 text-[11px] font-medium text-warning"
+            aria-label="You own this subject"
+            title="You own this subject"
+          >
+            <Crown className="size-3" />
+            Owner
+          </span>
+        ) : canToggle ? (
           <button
             onClick={toggleEnroll}
             disabled={isPending}
