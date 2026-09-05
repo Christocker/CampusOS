@@ -37,9 +37,9 @@ export function SubjectDetail({
 
   const toggleEnroll = () => {
     startEnroll(async () => {
-      if (enrolled && !isOwner) {
+      if (enrolled) {
         await unenrollSubjectAction(subject.id);
-      } else if (!enrolled) {
+      } else {
         await enrollSubjectAction(subject.id);
       }
       router.refresh();
@@ -56,23 +56,21 @@ export function SubjectDetail({
           <ArrowLeft className="size-5" />
         </Link>
         <div className="flex gap-2">
-          {!isOwner && (
-            <button
-              disabled={enrollPending}
-              onClick={toggleEnroll}
-              className="flex items-center gap-1.5 rounded-full bg-ink/5 px-3 text-xs font-medium text-ink disabled:opacity-60 dark:bg-ink-inverse/10 dark:text-ink-inverse"
-              aria-label={enrolled ? "Unenroll" : "Enroll"}
-            >
-              {enrollPending ? (
-                <Spinner className="size-3.5" />
-              ) : enrolled ? (
-                <Check className="size-3.5 text-success" />
-              ) : (
-                <Plus className="size-3.5" />
-              )}
-              {enrollPending ? "Saving…" : enrolled ? "Enrolled" : "Enroll"}
-            </button>
-          )}
+          <button
+            disabled={enrollPending}
+            onClick={toggleEnroll}
+            className="flex items-center gap-1.5 rounded-full bg-ink/5 px-3 text-xs font-medium text-ink disabled:opacity-60 dark:bg-ink-inverse/10 dark:text-ink-inverse"
+            aria-label={enrolled ? "Unenroll" : "Enroll"}
+          >
+            {enrollPending ? (
+              <Spinner className="size-3.5" />
+            ) : enrolled ? (
+              <Check className="size-3.5 text-success" />
+            ) : (
+              <Plus className="size-3.5" />
+            )}
+            {enrollPending ? "Saving…" : enrolled ? "Enrolled" : "Enroll"}
+          </button>
           {isOwner && (
             <button
               onClick={() => setEditOpen(true)}

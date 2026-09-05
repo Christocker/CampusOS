@@ -28,27 +28,14 @@ export async function enrollSubjectAction(subjectId: string): Promise<void> {
   });
 
   if (isNew) {
-    if (user.email) {
+    const isOwner = subject.userId === user.id;
+    if (!isOwner && user.email) {
       await sendEnrollmentEmail({
         to: user.email,
         userName: user.name ?? "Student",
         subjectName: subject.name,
         action: "enrolled",
       });
-    }
-    if (subject.userId !== user.id) {
-      const owner = await prisma.user.findUnique({
-        where: { id: subject.userId },
-        select: { email: true, name: true },
-      });
-      if (owner?.email) {
-        await sendEnrollmentEmail({
-          to: owner.email,
-          userName: owner.name ?? "Professor",
-          subjectName: subject.name,
-          action: "enrolled",
-        });
-      }
     }
   }
 
@@ -67,39 +54,22 @@ export async function unenrollSubjectAction(subjectId: string): Promise<void> {
   const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
   if (!subject) return;
 
-  // Owners are always considered enrolled in their own subject; blocking the
-  // unenroll keeps server state consistent with the UI (no enroll button for
-  // the owner) and prevents a self-inflicted "invisible own subject" state.
-  if (subject.userId === user.id) return;
-
   const deleted = await prisma.userEnrollment.deleteMany({
     where: { userId: user.id, subjectId },
   });
 
   // Only notify when an enrollment actually existed.
   if (deleted.count > 0) {
-    if (user.email) {
+    const isOwner = subject.userId === user.id;
+    // Skip self-emails: the owner doesn't need a notification about their own
+    // enrolment change.
+    if (!isOwner && user.email) {
       await sendEnrollmentEmail({
         to: user.email,
         userName: user.name ?? "Student",
         subjectName: subject.name,
         action: "unenrolled",
       });
-    }
-    // Symmetric with enroll: the subject owner hears that someone left.
-    if (subject.userId !== user.id) {
-      const owner = await prisma.user.findUnique({
-        where: { id: subject.userId },
-        select: { email: true, name: true },
-      });
-      if (owner?.email) {
-        await sendEnrollmentEmail({
-          to: owner.email,
-          userName: owner.name ?? "Professor",
-          subjectName: subject.name,
-          action: "unenrolled",
-        });
-      }
     }
   }
 
