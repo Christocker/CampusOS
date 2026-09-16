@@ -2,11 +2,19 @@
 
 import { forwardRef, useEffect, useState } from "react";
 import { Input } from "@/components/ui/Input";
+import { isDateOnly } from "@/lib/datetime";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 function parts(d?: Date | null): { date: string; time: string } {
   if (!d) return { date: "", time: "" };
+  // Date-only values have no time to show; use a fixed calendar date.
+  if (isDateOnly(d)) {
+    return {
+      date: `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`,
+      time: "",
+    };
+  }
   return {
     date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
     time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,

@@ -5,16 +5,19 @@ import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { userCanUseSubject } from "@/lib/enrollment";
-import { parseWallClock } from "@/lib/datetime";
+import { parseWallClock, makeDateOnly } from "@/lib/datetime";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { taskSchema, type ActionState } from "@/features/shared/validations";
 
-/** Date-only deadlines mean "by end of day". */
+/** A deadline with no time is stored as a date-only value (no time shown). */
 function parseDeadline(
   dateStr: unknown,
   timeStr: unknown,
   tzOffsetRaw: unknown,
 ): Date | null {
+  if (typeof timeStr !== "string" || timeStr.trim() === "") {
+    return makeDateOnly(dateStr);
+  }
   return parseWallClock(dateStr, timeStr, tzOffsetRaw, "end-of-day");
 }
 

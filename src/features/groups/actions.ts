@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { userCanUseSubject } from "@/lib/enrollment";
-import { parseLocalIso } from "@/lib/datetime";
+import { parseLocalIso, makeDateOnly } from "@/lib/datetime";
 import {
   groupSchema,
   commentSchema,
@@ -235,7 +235,11 @@ export async function createGroupTaskAction(
     }
   }
 
-  const deadline = parseLocalIso(formData.get("deadline"), formData.get("tzOffset"), "end-of-day");
+  const rawDeadline = formData.get("deadline");
+  const deadline =
+    typeof rawDeadline === "string" && rawDeadline !== "" && !rawDeadline.includes("T")
+      ? makeDateOnly(rawDeadline)
+      : parseLocalIso(rawDeadline, formData.get("tzOffset"), "end-of-day");
 
   await prisma.task.create({
     data: {

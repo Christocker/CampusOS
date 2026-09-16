@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Trophy, ChevronDown, ChevronUp, Check, X, Clock } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { cn } from "@/lib/utils";
+import { isDateOnly } from "@/lib/datetime";
 
 type Subject = { id: string; name: string; color: string; classCode?: string | null };
 type User = { id: string; name: string; image: string | null };
@@ -85,7 +86,10 @@ export function ProgressTracker({
   const formatDl = (d: Date | null | undefined) => {
     if (!d) return "No deadline";
     const date = new Date(d);
-    // 00:00 = no explicit time; 23:59 = date-only end-of-day default.
+    if (isDateOnly(date)) {
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+    }
+    // 00:00 = no explicit time; 23:59 = legacy date-only end-of-day default.
     const hasTime =
       !(date.getHours() === 0 && date.getMinutes() === 0) &&
       !(date.getHours() === 23 && date.getMinutes() === 59);

@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { isDateOnly } from "@/lib/datetime";
 
 /** Merge conditional class names with Tailwind conflict resolution. */
 export function cn(...inputs: ClassValue[]) {
@@ -27,6 +28,25 @@ export function formatDeadline(date: Date | string | null | undefined): string {
   if (!date) return "No deadline";
   const d = toDate(date);
   if (Number.isNaN(d.getTime())) return "No deadline";
+
+  // Date-only deadlines never show a time and use a fixed (UTC) calendar date
+  // so the same day is shown regardless of the viewer's timezone.
+  if (isDateOnly(d)) {
+    const now = new Date();
+    const dayMs = 86_400_000;
+    const todayUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    const deadlineUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const diffDays = Math.round((deadlineUtc - todayUtc) / dayMs);
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Tomorrow";
+    return d.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
   const now = new Date();
   const isToday = d.toDateString() === now.toDateString();
   const tomorrow = new Date(now);
