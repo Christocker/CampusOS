@@ -57,7 +57,7 @@ export function EventFormModal({
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? "Edit event" : "New event"}>
-      <form action={formAction} onSubmit={refreshTz} className="space-y-4">
+      <form action={formAction} onSubmit={refreshTz} className="space-y-4" autoComplete="off">
         <input type="hidden" name="tzOffset" ref={tzRef} defaultValue="" />
         <div>
           <Label htmlFor="title">Title</Label>
@@ -101,13 +101,19 @@ export function EventFormModal({
             </div>
           </div>
           <div>
-            <Label>End</Label>
+            <Label>
+              End{" "}
+              <span className="font-normal text-ink-muted">(optional)</span>
+            </Label>
             <div className={`grid grid-cols-2 gap-2 ${allDay ? "opacity-50" : ""}`}>
               <LocalDateInput id="endDate" name="endDate" value={endValue} />
               <div className={allDay ? "hidden" : "contents"}>
                 <LocalTimeInput id="endTime" name="endTime" value={endValue} />
               </div>
             </div>
+            <p className="mt-1 text-xs text-ink-muted">
+              Leave blank for a single date with no end.
+            </p>
           </div>
         </div>
 

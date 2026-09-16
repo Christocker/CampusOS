@@ -17,7 +17,7 @@ type TaskWithSubject = Task & {
   user?: { name: string } | null;
 };
 
-const tabs = ["All", "Incomplete", "Today", "Upcoming", "Completed"] as const;
+const tabs = ["All", "Incomplete", "Overdue", "Today", "Upcoming", "Completed"] as const;
 type Tab = (typeof tabs)[number];
 
 function startOfToday() {
@@ -45,15 +45,17 @@ export function TasksView({
     const today = startOfToday();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    if (tab === "Overdue") {
+      // Past due and not yet completed — tasks without a deadline never count.
+      return !isDone && !!t.deadline && t.deadline < today;
+    }
     if (tab === "Today") {
-      // Due today or overdue — but never tasks without a deadline, and
-      // never already-done tasks.
-      if (isDone) return false;
-      return !!t.deadline && t.deadline < tomorrow;
+      // Due today only (overdue has its own tab). Never tasks without a
+      // deadline, and never already-done tasks.
+      return !isDone && !!t.deadline && t.deadline >= today && t.deadline < tomorrow;
     }
     if (tab === "Upcoming") {
-      if (isDone) return false;
-      return !!t.deadline && t.deadline >= tomorrow;
+      return !isDone && !!t.deadline && t.deadline >= tomorrow;
     }
     return true;
   });
