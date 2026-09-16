@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { userCanUseSubject } from "@/lib/enrollment";
@@ -139,13 +140,15 @@ export async function createTaskAction(
   const deadlineStr = deadline
     ? ` Due: ${escapeHtml(deadline.toLocaleDateString())}`
     : "";
-  await notifyRecipients(
-    await getEmailRecipients(subjectId, user.id),
-    title,
-    subject.name,
-    "New task assigned",
-    `Priority: ${escapeHtml(priority)}${deadlineStr}${description ? `<br/>${escapeHtml(description)}` : ""}`,
-  );
+  after(async () => {
+    await notifyRecipients(
+      await getEmailRecipients(subjectId, user.id),
+      title,
+      subject.name,
+      "New task assigned",
+      `Priority: ${escapeHtml(priority)}${deadlineStr}${description ? `<br/>${escapeHtml(description)}` : ""}`,
+    );
+  });
 
   revalidateTaskSurfaces(task.id, subjectId);
   return { ok: true };
@@ -226,14 +229,16 @@ export async function updateTaskAction(
   });
 
   if (changes.length > 0) {
-    const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
-    await notifyRecipients(
-      await getEmailRecipients(subjectId, user.id),
-      title,
-      subject?.name ?? "a subject",
-      "Task updated",
-      changes.join("<br/>"),
-    );
+    after(async () => {
+      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+      await notifyRecipients(
+        await getEmailRecipients(subjectId, user.id),
+        title,
+        subject?.name ?? "a subject",
+        "Task updated",
+        changes.join("<br/>"),
+      );
+    });
   }
 
   revalidateTaskSurfaces(id, existing.subjectId, subjectId);
@@ -294,15 +299,18 @@ export async function toggleTaskCompleteAction(id: string): Promise<ActionState>
     return previous;
   });
 
-  if (existing.subjectId) {
-    const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId } });
-    await notifyRecipients(
-      await getEmailRecipients(existing.subjectId, user.id),
-      existing.title,
-      subject?.name ?? "a subject",
-      wasCompleted ? "Task reopened" : "Task completed",
-      `Marked as ${wasCompleted ? "incomplete" : "completed"} by ${escapeHtml(user.name ?? "a classmate")}.`,
-    );
+  const subjectId = existing.subjectId;
+  if (subjectId) {
+    after(async () => {
+      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+      await notifyRecipients(
+        await getEmailRecipients(subjectId, user.id),
+        existing.title,
+        subject?.name ?? "a subject",
+        wasCompleted ? "Task reopened" : "Task completed",
+        `Marked as ${wasCompleted ? "incomplete" : "completed"} by ${escapeHtml(user.name ?? "a classmate")}.`,
+      );
+    });
   }
 
   revalidateTaskSurfaces(id, existing.subjectId);
@@ -322,15 +330,18 @@ export async function deleteTaskAction(id: string): Promise<ActionState> {
 
   await prisma.task.delete({ where: { id } });
 
-  if (existing.subjectId) {
-    const subject = await prisma.subject.findUnique({ where: { id: existing.subjectId } });
-    await notifyRecipients(
-      await getEmailRecipients(existing.subjectId, user.id),
-      existing.title,
-      subject?.name ?? "a subject",
-      "Task deleted",
-      `Deleted by ${escapeHtml(user.name ?? "a classmate")}.`,
-    );
+  const subjectId = existing.subjectId;
+  if (subjectId) {
+    after(async () => {
+      const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+      await notifyRecipients(
+        await getEmailRecipients(subjectId, user.id),
+        existing.title,
+        subject?.name ?? "a subject",
+        "Task deleted",
+        `Deleted by ${escapeHtml(user.name ?? "a classmate")}.`,
+      );
+    });
   }
 
   revalidateTaskSurfaces(id, existing.subjectId);

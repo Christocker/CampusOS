@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 const TABLES = [
@@ -17,6 +17,7 @@ const TABLES = [
 
 export function useRealtimeRefresh() {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -25,7 +26,10 @@ export function useRealtimeRefresh() {
 
     const debouncedRefresh = () => {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
-      refreshTimeout.current = setTimeout(() => router.refresh(), 300);
+      refreshTimeout.current = setTimeout(
+        () => startTransition(() => router.refresh()),
+        300,
+      );
     };
 
     // Load supabase-js lazily (keeps it out of the initial page bundle) and
@@ -56,5 +60,5 @@ export function useRealtimeRefresh() {
       if (refreshTimeout.current) clearTimeout(refreshTimeout.current);
       cleanup?.();
     };
-  }, [router]);
+  }, [router, startTransition]);
 }
