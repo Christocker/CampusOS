@@ -14,7 +14,7 @@ const variants: Record<Variant, string> = {
     "bg-ink/5 text-ink hover:bg-ink/10 dark:bg-ink-inverse/10 dark:text-ink-inverse dark:hover:bg-ink-inverse/15",
   ghost:
     "bg-transparent text-ink hover:bg-ink/5 dark:text-ink-inverse dark:hover:bg-ink-inverse/10",
-  soft: "bg-primary/15 text-ink hover:bg-primary/25",
+  soft: "bg-primary/15 text-ink hover:bg-primary/25 dark:text-ink-inverse",
   danger: "bg-danger text-white hover:bg-danger/90",
 };
 

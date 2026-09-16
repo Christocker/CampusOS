@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ink-muted: 142 142 147;
+}
+
+html.dark {
+  --ink-muted: 174 174 178;
+}
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;

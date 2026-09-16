@@ -18,7 +18,7 @@ export function ProgressWidget({
         <p className="text-note-caption text-ink-muted">
           {completed} of {total} tasks done
         </p>
-          <p className="text-note-headline text-ink">{pct}%</p>
+          <p className="text-note-headline text-ink dark:text-ink-inverse">{pct}%</p>
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-border-light dark:bg-border-dark">
         <div

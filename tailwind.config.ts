@@ -32,7 +32,7 @@ const config: Config = {
         danger: "#FF3B30",
         ink: {
           DEFAULT: "#1C1C1E",
-          muted: "#8E8E93",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
           inverse: "#FFFFFF",
         },
         border: {

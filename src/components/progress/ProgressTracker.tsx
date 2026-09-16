@@ -104,7 +104,7 @@ export function ProgressTracker({
       <div className="card mb-4 p-4">
         <div className="mb-2 flex items-baseline justify-between">
           <p className="text-sm font-semibold">Overall</p>
-          <p className="text-sm font-semibold text-ink">{overallPct}%</p>
+          <p className="text-sm font-semibold text-ink dark:text-ink-inverse">{overallPct}%</p>
         </div>
         <div className="h-2.5 w-full overflow-hidden rounded-full bg-border-light dark:bg-border-dark">
           <div
@@ -151,7 +151,7 @@ export function ProgressTracker({
                       </p>
                       <p className="text-xs text-ink-muted">{u.done} of {u.total} tasks done</p>
                     </div>
-                    <span className="text-sm font-semibold text-ink">{u.pct}%</span>
+                    <span className="text-sm font-semibold text-ink dark:text-ink-inverse">{u.pct}%</span>
                   </div>
                   <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border-light dark:bg-border-dark">
                     <div
@@ -193,7 +193,7 @@ export function ProgressTracker({
                         </p>
                         <p className="text-xs text-ink-muted">{done} of {s.tasks.length} done</p>
                       </div>
-                      <span className="text-sm font-semibold text-ink">
+                      <span className="text-sm font-semibold text-ink dark:text-ink-inverse">
                         {s.tasks.length ? Math.round((done / s.tasks.length) * 100) : 0}%
                       </span>
                       {isOpen ? <ChevronUp className="size-4 text-ink-muted" /> : <ChevronDown className="size-4 text-ink-muted" />}

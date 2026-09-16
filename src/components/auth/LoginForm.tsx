@@ -34,7 +34,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           onClick={() => setMode("admin")}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
             mode === "admin"
-              ? "bg-card-light text-ink shadow-sm dark:bg-card-dark"
+              ? "bg-card-light text-ink shadow-sm dark:bg-card-dark dark:text-ink-inverse"
               : "text-ink-muted"
           }`}
         >
@@ -45,7 +45,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
           onClick={() => setMode("code")}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
             mode === "code"
-              ? "bg-card-light text-ink shadow-sm dark:bg-card-dark"
+              ? "bg-card-light text-ink shadow-sm dark:bg-card-dark dark:text-ink-inverse"
               : "text-ink-muted"
           }`}
         >
