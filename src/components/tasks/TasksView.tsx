@@ -17,7 +17,7 @@ type TaskWithSubject = Task & {
   user?: { name: string } | null;
 };
 
-const tabs = ["All", "Today", "Upcoming", "Completed"] as const;
+const tabs = ["All", "Incomplete", "Today", "Upcoming", "Completed"] as const;
 type Tab = (typeof tabs)[number];
 
 function startOfToday() {
@@ -40,6 +40,7 @@ export function TasksView({
   const filtered = tasks.filter((t) => {
     const isDone = completionMap.get(t.id) === true;
     if (tab === "All") return true;
+    if (tab === "Incomplete") return !isDone;
     if (tab === "Completed") return isDone;
     const today = startOfToday();
     const tomorrow = new Date(today);
